@@ -1,0 +1,6 @@
+streamlit
+streamlit-chat
+python-dotenv
+llamaindex
+openai
+pyairtable
