@@ -1,6 +1,7 @@
 streamlit
-streamlit-chat
+streamlit-chat #0.1.1
 python-dotenv
-llamaindex
-openai
+llamaindex #0.10.3
+openai 
 pyairtable
+faiss

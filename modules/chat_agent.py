@@ -1,11 +1,10 @@
-from llama_index.agent import OpenAIAgent, ReActAgent
-from llama_index.chat_engine.types import AgentChatResponse
+from llama_index.agent.openai import OpenAIAgent
+from llama_index.core.chat_engine.types import AgentChatResponse
 from llama_index.llms import OpenAI
-from llama_index.memory import BaseMemory, ChatMemoryBuffer
-from llama_index.tools import BaseTool
+# from llama_index.memory import BaseMemory, ChatMemoryBuffer
+from llama_index.core.tools import QueryEngineTool, ToolMetadata, BaseTool
 from typing import Any, Dict, Optional, Type, List
 from dotenv import load_dotenv
-from modules.prompts import system_prompt_llamaindex_ndis_invoicing_agent
 
 import logging
 import sys
@@ -16,14 +15,14 @@ load_dotenv(override=True)
 
 
 class ChatAgent:
-    def __init__(self, tools:List[BaseTool], model_name: str='gpt-3.5-turbo-0613', temperature: float=0.5):
+    def __init__(self, tools:List[BaseTool]):
 
-        llm = OpenAI(model=model_name, temperature=temperature)
-        self.memory = ChatMemoryBuffer.from_defaults(llm=llm, chat_history=[])
+        llm = OpenAI(model='gpt-4', temperature=0)
+        # self.memory = ChatMemoryBuffer.from_defaults(llm=llm, chat_history=[])
 
-        self.agent = OpenAIAgent.from_tools(tools, llm=llm, memory=self.memory, verbose=True, system_prompt=system_prompt_llamaindex_ndis_invoicing_agent)
+        self.agent = OpenAIAgent.from_tools(tools, llm=llm, verbose=True) # TODO: add system_prompt=system_prompt_llamaindex_ndis_invoicing_agent)
 
-        logging.log(logging.INFO, f'ChatAgent initialized with {model_name}, temperature {temperature} and tools {tools}')
+        logging.log(logging.INFO, f'ChatAgent initialized with gpt-4')
 
     def chat(self, query):
         """
