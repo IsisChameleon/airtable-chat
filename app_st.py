@@ -2,15 +2,20 @@
 from dotenv import load_dotenv, find_dotenv
 from itertools import zip_longest
 import os
+import logging
+import sys
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 import streamlit as st
 from streamlit_chat import message
 
 from sidebar_st import Sidebar
 from modules.chat_agent import ChatAgent
-from modules.agent_tools import getAgentTools
 from modules.chathistory import ChatHistory
-
+from modules.reader import CustomAirtableReader
+from modules.indexer import Indexer
 
 # Load environment variables
 load_dotenv(find_dotenv())
@@ -22,16 +27,26 @@ st.title("Chat about Airtable")
 # Instantiate the main components
 sidebar = Sidebar()
 
-def setupChatAgent(model, temperature):
-    tools = getAgentTools()
+def setupChatAgent():
+    
+    # AirtableReader = download_loader('AirtableReader')
+
+    AIRTABLE_TOKEN=os.environ['AIRTABLE_TOKEN']
+    AIRTABLE_BASE_ID=os.environ['AIRTABLE_BASE_ID']
+    AIRTABLE_TABLE_ID=os.environ['AIRTABLE_TABLE_ID']
+
+    reader = CustomAirtableReader(AIRTABLE_TOKEN, table_id=AIRTABLE_TABLE_ID,base_id=AIRTABLE_BASE_ID)
+
+    indexer = Indexer(reader, "MembersIndex")
+    tools = indexer.tools
     if tools is None or len(tools)<1:
         raise ValueError('No retrieval tool detected, please add a tool for the agent')
-    return ChatAgent(tools, model_name=model, temperature=temperature)
+    return ChatAgent(tools)
 
 def initConversation():
     history = ChatHistory()
     history.initialize()
-    return setupChatAgent(st.session_state["model"], st.session_state["temperature"]), history
+    return setupChatAgent(), history
 
 def load_api_key():
     """
@@ -78,29 +93,24 @@ def st_exists(name: str):
 def initConversation():
     history = ChatHistory()
     history.initialize()
-    return setupChatAgent(st.session_state["model"], st.session_state["temperature"]), history
+    return setupChatAgent(), history
 
 def main_processing():
     if not api_key_present():
         return
     # show sidebar
-
-    # Initialize chat history
-    history = ChatHistory()
     
     # Initialize the chatbot if first time or the chat history if button clicked
-    if st.session_state["reset_chat"] or \
-        st.session_state["tweak"] or \
-        "chatbot" not in st.session_state:
+    reset_chat = st.session_state.get("reset_chat", True)
+    print(reset_chat)
+    if  reset_chat or "chatbot" not in st.session_state or "history" not in st.session_state:
             
         chatbot, history = initConversation()
-        print(chatbot)
-        print(history)
         st.session_state["reset_chat"] = False
-        st.session_state["tweak"] = False
         st.session_state["chatbot"] = chatbot
+        st.session_state["history"] = history 
 
-    history.display_chat_messages_history()
+    st.session_state["history"].display_chat_messages_history()
     
     # Accept user input
     if prompt := st.chat_input("Please ask a question..."):
@@ -125,7 +135,3 @@ def main_processing():
 sidebar.show_contact()
 main_processing()
 
-# Add credit
-st.markdown("""
----
-© Isabelle for The Builders Club, Reach out for contributions!""")

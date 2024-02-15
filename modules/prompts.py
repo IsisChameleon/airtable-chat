@@ -73,3 +73,60 @@ Answer:
 
 """
 answer_prompt = PromptTemplate(answer_prompt_tpl, prompt_type=PromptType.CUSTOM)
+
+TEXT_TO_SQL_TMPL2 = (
+    """Given an input question, first create a syntactically correct {dialect} 
+    query to run, then look at the results of the query and return the answer. 
+    You can order the results by a relevant column to return the most 
+    interesting examples in the database.
+
+    Pay attention to use only the column names that you can see in the schema
+    description.
+    Be careful to not query for columns that do not exist.
+    Pay attention to which column is in which table.
+    Also, qualify column names with the table name when needed.
+    You are required to use the following format, each taking one line:
+
+    Question: Question here
+    SQLQuery: SQL Query to run
+    SQLResult: Result of the SQLQuery
+    Answer: Final answer here
+
+    Only use tables listed below.
+    {schema}
+
+    In table "build_club_members", each member can list 4 skills in columns skill_1, skill_2, skill_3, skill_4.
+    Here's the set of possible values these columns can take:
+    'AI / ML specialist researcher',
+    'AI Engineer',
+    'Backend software dev',
+    'Designer',
+    'Domain expert',
+    'Front end software dev',
+    'Go to market',
+    'Idea validating',
+    'Product management'
+    
+    So when the Question mentions a semantically similar skill, please translate into one of the existing skill or a combination of similar skills.
+    For example: 
+    Question: "What builders are software engineers?"
+    SQLQuery: "SELECT member_name, linkedin_url FROM build_club_members WHERE skill_1 = 'Backend software dev' OR skill_1 = 'Front end software dev' 
+                OR skill_2 = 'Backend software dev' OR skill_2 = 'Front end software dev'
+                OR skill_3 = 'Backend software dev' OR skill_3 = 'Front end software dev'
+                OR skill_4 = 'Backend software dev' OR skill_4 = 'Front end software dev'
+
+    Question: "What builders are into UX Design?"
+    SQLQuery: "SELECT member_name, linkedin_url FROM build_club_members WHERE skill_1 = 'Designer'
+                OR skill_2 = 'Designer' 
+                OR skill_3 = 'Designer'
+                OR skill_4 = 'Designer'
+
+    Question: {query_str}
+    SQLQuery: 
+    """
+)
+
+TEXT_TO_SQL_PROMPT2 = PromptTemplate(
+    TEXT_TO_SQL_TMPL2,
+    prompt_type=PromptType.TEXT_TO_SQL,
+)

@@ -140,7 +140,7 @@ class Indexer:
                 query_engine=self.db_query_engine,
                 metadata=ToolMetadata(
                     name="db_query_engine",
-                    description="useful for when you want to answer queries about members linked in url, name, skills.",
+                    description="useful for when you want to answer queries about members career or role (skills), linked in url, name, skills.",
                 ),
         )
         if self._semantic_query_engine_tool is None:
@@ -148,7 +148,7 @@ class Indexer:
                 query_engine=self.semantic_query_engine,
                 metadata=ToolMetadata(
                         name="semantic_query_engine",
-                        description="useful for when you want to answer queries about members projects and biography",
+                        description="useful for when you want to answer queries about members projects and startups, or what they are building",
                     ),
         )
         return [self._db_query_engine_tool, self._semantic_query_engine_tool]
