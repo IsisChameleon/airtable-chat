@@ -16,6 +16,7 @@ from modules.prompts import TEXT_TO_SQL_PROMPT
 from typing import Any, Dict, Optional, Type, List
 import os
 from pathlib import Path
+import logging
 # import faiss
 
 #https://chartio.com/resources/tutorials/how-to-execute-raw-sql-in-sqlalchemy/
@@ -39,6 +40,7 @@ class Indexer:
     def __init__(self, reader: CustomAirtableReader, index_name: str):
 
         self.reader = reader
+        self._vector_store_index = None
         self.index = None
         self.index_name = index_name
         self._semantic_query_engine = None
@@ -50,7 +52,7 @@ class Indexer:
         self._db_query_engine_tool = None
         self._semantic_query_engine_tool = None
 
-    def buildVectorStoreIndex(self):
+    def _buildVectorStoreIndex(self):
         nodes = self.reader.extract_nodes()
 
         # SETUP VECTOR STORE
@@ -61,7 +63,7 @@ class Indexer:
         # storage_context = StorageContext.from_defaults(vector_store=vector_store)
         self.index = VectorStoreIndex(nodes=nodes) #, storage_context=storage_context)
         # save index to disk
-        self.index.storage_context.persist(f'{STORAGE_ROOT}/storage_{self.index_name}')
+        self.index.storage_context.persist(f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}')
         self._semantic_query_engine = None
         return self.index
 
@@ -77,10 +79,19 @@ class Indexer:
             self._semantic_query_engine = None
         return self.index
     
+    # @property
+    # def vector_store_index(self):
+    #     # check if storage already exists
+    #     persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'
+    #     if not os.path.exists(persist_dir):
+    #         self._buildVectorStoreIndex()
+
+
+    
     @property
     def semantic_query_engine(self):
         if self.index is None:
-            _ = self.buildVectorStoreIndex()
+            _ = self._buildVectorStoreIndex()
         if self._semantic_query_engine is None:
             llm = OpenAI(model="gpt-4", temperature=0)
             self._semantic_query_engine = self.index.as_query_engine(llm=llm)
@@ -90,6 +101,7 @@ class Indexer:
     # to have function calling /workspaces/ml-learning/.venv/lib/python3.11/site-packages/llama_index/core/indices/vector_store/retrievers/retriever.py
 
     def _design_build_club_members_table(self) -> Table:
+        logging.log(logging.INFO, f'Design build_club_members table')
         metadata_obj = self.default_schema
         table_name = "build_club_members"
         build_club_members = Table(
@@ -104,12 +116,13 @@ class Indexer:
             Column("skill_4", String(128)),
             Column("build_project", String(4096))
         )
-        metadata_obj.create_all(self.engine)
+        # metadata_obj.create_all(self.engine)
         return build_club_members
     
     @property
     def db_query_engine(self):
         if self._db_query_engine is None:
+            logging.log(logging.INFO, f'Initializing sqlite in memory')
             self.engine = create_engine("sqlite:///:memory:")
             self.default_schema = MetaData()
             self._table = self._design_build_club_members_table()
@@ -121,6 +134,7 @@ class Indexer:
                 stmt = insert(self._table).values(**row)
                 with self.engine.begin() as connection:
                     cursor = connection.execute(stmt)
+            logging.log(logging.INFO, f'All rows inserted')
 
             self.sql_database = SQLDatabase(self.engine, include_tables=["build_club_members"])
             llm = OpenAI(model="gpt-4", temperature=0)
@@ -131,6 +145,8 @@ class Indexer:
                 text_to_sql_prompt=TEXT_TO_SQL_PROMPT,
                 verbose=True
             )
+            logging.log(logging.INFO, f'Db query engine created')
+        logging.log(logging.INFO, f'Returning Db query engine')
         return self._db_query_engine
     
     @property
@@ -152,6 +168,8 @@ class Indexer:
                     ),
         )
         return [self._db_query_engine_tool, self._semantic_query_engine_tool]
+
+    
 
 
 

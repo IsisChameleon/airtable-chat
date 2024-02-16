@@ -5,6 +5,8 @@ from llama_index.llms.openai import OpenAI
 from llama_index.core.tools import QueryEngineTool, ToolMetadata, BaseTool
 from typing import Any, Dict, Optional, Type, List
 from dotenv import load_dotenv
+from llama_index.core.query_engine import RouterQueryEngine
+from llama_index.core.selectors import LLMSingleSelector
 
 import logging
 import sys
@@ -29,4 +31,25 @@ class ChatAgent:
         Start a conversational chat with a model via Langchain
         """
         response: AgentChatResponse= self.agent.chat(query)
+        return response.response, response.source_nodes
+    
+class ChatAgentRouterQueryEngine:
+    def __init__(self, tools:List[BaseTool]):
+
+        llm = OpenAI(model='gpt-4', temperature=0)
+
+        query_engine = RouterQueryEngine(
+            selector=LLMSingleSelector.from_defaults(llm=llm),
+            query_engine_tools=(tools),
+        )
+
+        self.agent = query_engine
+
+        logging.log(logging.INFO, f'ChatAgentRouterQueryEngine initialized with gpt-4')
+
+    def chat(self, query):
+        """
+        Start a conversational chat with a model via Langchain
+        """
+        response = self.agent.query(query)
         return response.response, response.source_nodes

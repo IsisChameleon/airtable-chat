@@ -12,36 +12,39 @@ import streamlit as st
 from streamlit_chat import message
 
 from sidebar_st import Sidebar
-from modules.chat_agent import ChatAgent
+from modules.chat_agent import ChatAgent, ChatAgentRouterQueryEngine
 from modules.chathistory import ChatHistory
 from modules.reader import CustomAirtableReader
 from modules.indexer import Indexer
+from modules.airtableconfig import INDEX_NAMES, AIRTABLE_CONFIG
 
 # Load environment variables
-load_dotenv(find_dotenv())
+
 
 # Set streamlit page configuration
-st.set_page_config(layout="wide", page_title="Chat about Airtable")
-st.title("Chat about Airtable")
+st.set_page_config(layout="wide", page_title="Chat about Build Club Members")
+st.title("Chat about Build Club Members")
 
 # Instantiate the main components
 sidebar = Sidebar()
 
 def setupChatAgent():
-    
-    # AirtableReader = download_loader('AirtableReader')
 
-    AIRTABLE_TOKEN=os.environ['AIRTABLE_TOKEN']
-    AIRTABLE_BASE_ID=os.environ['AIRTABLE_BASE_ID']
-    AIRTABLE_TABLE_ID=os.environ['AIRTABLE_TABLE_ID']
+    # Select the table to chat about
+    config = AIRTABLE_CONFIG['BuildBountyMembersGenAI']
 
-    reader = CustomAirtableReader(AIRTABLE_TOKEN, table_id=AIRTABLE_TABLE_ID,base_id=AIRTABLE_BASE_ID)
+    reader = CustomAirtableReader(
+        config['TOKEN'], 
+        table_id=config['TABLE'],
+        base_id=config['BASE'])
 
-    indexer = Indexer(reader, "MembersIndex")
+    index_name = INDEX_NAMES[config['TABLE']]
+
+    indexer = Indexer(reader, index_name)
     tools = indexer.tools
     if tools is None or len(tools)<1:
         raise ValueError('No retrieval tool detected, please add a tool for the agent')
-    return ChatAgent(tools)
+    return ChatAgentRouterQueryEngine(tools)
 
 def initConversation():
     history = ChatHistory()

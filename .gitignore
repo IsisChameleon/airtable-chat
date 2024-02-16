@@ -107,3 +107,5 @@ frontend/cypress/snapshots/linux/1x
 ########################################################################
 .env
 .aider*
+
+storage_*

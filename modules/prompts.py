@@ -44,10 +44,13 @@ TEXT_TO_SQL_TMPL = (
     Question: "What builders are into UX Design?"
     SQLQuery: "SELECT member_name, linkedin_url FROM build_club_members WHERE skill_1 = 'Designer' OR skill_2 = 'Designer' OR skill_3 = 'Designer' OR skill_4 = 'Designer'"
 
-    SQLQuery answer must start and end with ", and only contains ' for enclosing text values, and not contain '\n' or other non authorised characters.
+    SQLQuery answer must start and end with ", and only contains ' for enclosing text values, and not contain newlines or \ characters. 
+    
     For example: 
     Question: "Who works on ML algorithms?"
     SQLQuery: "SELECT member_name, linkedin_url FROM build_club_members WHERE skill_1 = 'AI / ML specialist researcher' OR skill_2 = 'AI / ML specialist researcher'"
+    Question: "What is the linkedin of Eric Perez?"
+    SQLQuery: "SELECT linkedin_url FROM build_club_members WHERE member_name = 'Eric Perez'"
     
     Question: {query_str}
     SQLQuery: 
