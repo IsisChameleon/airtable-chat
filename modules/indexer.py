@@ -8,6 +8,7 @@ from llama_index.core import SQLDatabase
 from llama_index.core.prompts.base import PromptTemplate
 from llama_index.core.prompts.prompt_type import PromptType
 from llama_index.core.query_engine import NLSQLTableQueryEngine
+from llama_index.core.retrievers import NLSQLRetriever
 from llama_index.core.tools import QueryEngineTool, ToolMetadata, RetrieverTool
 
 from modules.reader import CustomAirtableReader
@@ -49,11 +50,13 @@ class Indexer:
         self.engine = None
         self.default_schema = None
         self._table = None
-        self.sql_database = None
+        self._sql_database = None
         self._db_query_engine_tool = None
         self._semantic_query_engine_tool = None
         self._db_retriever_tool = None
+        self._db_retriever = None
         self._semantic_retriever_tool = None
+        self._semantic_retriever = None
         self.listindex = None
 
     def _buildVectorStoreIndex(self):
@@ -96,16 +99,6 @@ class Indexer:
             self._semantic_query_engine = None
             return self.vectorstoreindex
         return self._buildVectorStoreIndex()
-
-    
-    # @property
-    # def vector_store_index(self):
-    #     # check if storage already exists
-    #     persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'
-    #     if not os.path.exists(persist_dir):
-    #         self._buildVectorStoreIndex()
-
-
     
     @property
     def semantic_query_engine(self):
@@ -114,6 +107,15 @@ class Indexer:
         if self._semantic_query_engine is None:
             llm = OpenAI(model="gpt-4", temperature=0)
             self._semantic_query_engine = self.vectorstoreindex.as_query_engine(llm=llm)
+        return self._semantic_query_engine
+
+    @property
+    def semantic_retriever(self):
+        if self.vectorstoreindex is None:
+            _ = self._getVectorStoreIndex(reload=False)
+        if self._semantic_retriever is None:
+            llm = OpenAI(model="gpt-4", temperature=0)
+            self._semantic_retriever = self.vectorstoreindex.as_retriever(llm=llm)
         return self._semantic_query_engine
     
     # to do create vector store retriever as tool 
@@ -152,28 +154,36 @@ class Indexer:
         # metadata_obj.create_all(self.engine)
         return build_club_members
     
+    def _getSQLDatabase(self):
+        logging.log(logging.INFO, f'===BUILDING NEW=== Initializing sqlite in memory')
+        self.engine = create_engine("sqlite:///:memory:")
+        self.default_schema = MetaData()
+        self._table = self._design_build_club_members_table()
+        self.default_schema.create_all(self.engine)
+
+        rows = self.reader.extract_rows2()
+
+        for row in rows:
+            stmt = insert(self._table).values(**row)
+            with self.engine.begin() as connection:
+                cursor = connection.execute(stmt)
+        logging.log(logging.INFO, f'===YAY=== All rows inserted in build_club_members table')
+
+        self._sql_database = SQLDatabase(self.engine, include_tables=["build_club_members"])
+        self._db_query_engine = None
+        return self._sql_database
+    
     @property
     def db_query_engine(self):
         logging.log(logging.INFO, f'===db_query_engine===')
+        if  self._sql_database is None:           
+            _ = self._getSQLDatabase()
+
         if self._db_query_engine is None:
-            logging.log(logging.INFO, f'===BUILDING NEW=== Initializing sqlite in memory')
-            self.engine = create_engine("sqlite:///:memory:")
-            self.default_schema = MetaData()
-            self._table = self._design_build_club_members_table()
-            self.default_schema.create_all(self.engine)
 
-            rows = self.reader.extract_rows2()
-
-            for row in rows:
-                stmt = insert(self._table).values(**row)
-                with self.engine.begin() as connection:
-                    cursor = connection.execute(stmt)
-            logging.log(logging.INFO, f'===YAY=== All rows inserted in build_club_members table')
-
-            self.sql_database = SQLDatabase(self.engine, include_tables=["build_club_members"])
             llm = OpenAI(model="gpt-4", temperature=0)
             self._db_query_engine = NLSQLTableQueryEngine(
-                sql_database=self.sql_database,
+                sql_database=self._sql_database,
                 llm=llm,
                 tables=["build_club_members"],
                 text_to_sql_prompt=TEXT_TO_SQL_PROMPT,
@@ -182,6 +192,42 @@ class Indexer:
             logging.log(logging.INFO, f'==Db query engine created==')
         logging.log(logging.INFO, f'Returning Db query engine')
         return self._db_query_engine
+
+
+        # sql_database (SQLDatabase): SQL database.
+        # text_to_sql_prompt (BasePromptTemplate): Prompt template for text-to-sql.
+        #     Defaults to DEFAULT_TEXT_TO_SQL_PROMPT.
+        # context_query_kwargs (dict): Mapping from table name to context query.
+        #     Defaults to None.
+        # tables (Union[List[str], List[Table]]): List of table names or Table objects.
+        # table_retriever (ObjectRetriever[SQLTableSchema]): Object retriever for
+        #     SQLTableSchema objects. Defaults to None.
+        # context_str_prefix (str): Prefix for context string. Defaults to None.
+        # service_context (ServiceContext): Service context. Defaults to None.
+        # return_raw (bool): Whether to return plain-text dump of SQL results, or parsed into Nodes.
+        # handle_sql_errors (bool): Whether to handle SQL errors. Defaults to True.
+        # sql_only (bool) : Whether to get only sql and not the sql query result.
+        #     Default to False.
+        # llm (Optional[LLM]): Language model to use.
+    @property
+    def db_retriever(self):
+        logging.log(logging.INFO, f'===db_retriever===')
+        if  self._sql_database is None:           
+            _ = self._getSQLDatabase()
+
+        if self._db_retriever is None:
+
+            llm = OpenAI(model="gpt-4", temperature=0)
+            self._db_retriever = NLSQLRetriever(
+                sql_database=self._sql_database,
+                llm=llm,
+                tables=["build_club_members"],
+                text_to_sql_prompt=TEXT_TO_SQL_PROMPT,
+                verbose=True
+            )
+            logging.log(logging.INFO, f'==Db retriever created==')
+        logging.log(logging.INFO, f'Returning Db retriever')
+        return self._db_retriever
     
     @property
     def tools(self):
@@ -207,7 +253,7 @@ class Indexer:
     def retriever_tools(self):
         if self._db_retriever_tool is None:
             self._db_retriever_tool = RetrieverTool(
-                query_engine=self.db_query_engine,
+                retriever=self.db_retriever,
                 metadata=ToolMetadata(
                     name="db_query_engine",
                     description="useful for when you want to answer queries about members career, role, linked in url, name, skills, location, phone number, accepted in club or not, referrer name.",
@@ -215,7 +261,7 @@ class Indexer:
         )
         if self._semantic_retriever_tool is None:
             self._semantic_retriever_tool = RetrieverTool(
-                query_engine=self.semantic_query_engine,
+                retriever=self.semantic_retriever,
                 metadata=ToolMetadata(
                         name="semantic_query_engine",
                         description="useful for when you want to answer queries about members projects and startups (past and present), what they hope from the club and startups, or what they are building",
