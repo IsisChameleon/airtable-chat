@@ -8,6 +8,28 @@ import pandas as pd
 import json
 import uuid
 import logging
+import os
+
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv(), override=True)
+
+SUPABASE_CONNECTION_STRING=os.getenv('SUPABASE_CONNECTION_STRING')
+SQLITE_MEMORY_CONNECTION_STRING="sqlite:///:memory:"
+DB_CONNECTION=SUPABASE_CONNECTION_STRING
+
+#https://chartio.com/resources/tutorials/how-to-execute-raw-sql-in-sqlalchemy/
+from sqlalchemy import (
+    insert,
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Boolean,
+    Integer,
+    select,
+    column,
+)
 
 BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS = {
     "skills": "What are your areas of expertise you have (select max 4 please)",
@@ -292,3 +314,20 @@ I'm available for building on {best_time_for_build_sessions}"""
         df = pd.DataFrame(fields)
 
         return df
+    
+    def refresh_table(self):
+        engine = create_engine(DB_CONNECTION)
+
+        # Initialize metadata
+        metadata = MetaData()
+
+        # Reflect the table
+        build_club_members = Table('build_club_members', metadata, autoload_with=engine)
+
+        rows = self.extract_rows2()
+
+        for row in rows:
+            stmt = insert(build_club_members).values(**row)
+            with engine.begin() as connection:
+                cursor = connection.execute(stmt)
+        logging.log(logging.INFO, f'===YAY=== All rows inserted in build_club_members table')

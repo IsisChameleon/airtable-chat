@@ -3,6 +3,7 @@ from llama_index.core.indices import VectorStoreIndex, ListIndex
 from llama_index.llms.openai import OpenAI
 
 from llama_index.legacy.vector_stores.faiss import FaissVectorStore
+from llama_index.legacy.vector_stores import SupabaseVectorStore
 from llama_index.core.readers.base import BaseReader
 from llama_index.core import SQLDatabase
 from llama_index.core.prompts.base import PromptTemplate
@@ -19,6 +20,13 @@ import os
 from pathlib import Path
 import logging
 # import faiss
+
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv(), override=True)
+
+SUPABASE_CONNECTION_STRING=os.getenv('SUPABASE_CONNECTION_STRING')
+SQLITE_MEMORY_CONNECTION_STRING="sqlite:///:memory:"
+DB_CONNECTION=SUPABASE_CONNECTION_STRING
 
 #https://chartio.com/resources/tutorials/how-to-execute-raw-sql-in-sqlalchemy/
 from sqlalchemy import (
@@ -41,15 +49,18 @@ STORAGE_ROOT='.' #local
 class Indexer:
     def __init__(self, reader: CustomAirtableReader, index_name: str):
 
+        # sqlalchemy
+        self.engine = None
+        self.default_schema = None
+        self._table = None
+
         self.reader = reader
         self._vector_store_index = None
         self.vectorstoreindex = None
         self.index_name = index_name
         self._semantic_query_engine = None
         self._db_query_engine = None
-        self.engine = None
-        self.default_schema = None
-        self._table = None
+
         self._sql_database = None
         self._db_query_engine_tool = None
         self._semantic_query_engine_tool = None
@@ -58,35 +69,28 @@ class Indexer:
         self._semantic_retriever_tool = None
         self._semantic_retriever = None
         self.listindex = None
+        self.vector_store = None
 
     def _buildVectorStoreIndex(self):
         logging.log(logging.INFO, f'===BUILD VECTOR STORE INDEX=== storing in {STORAGE_ROOT}/storage_vector_store_{self.index_name}')
         nodes = self.reader.extract_nodes()
-
-        # SETUP VECTOR STORE
-        # dimensions of text-ada-embedding-002
-        # d = 1536
-        # faiss_index = faiss.IndexFlatL2(d)
-        # vector_store = FaissVectorStore(faiss_index=faiss_index)
-        # storage_context = StorageContext.from_defaults(vector_store=vector_store)
         self.vectorstoreindex = VectorStoreIndex(nodes=nodes) #, storage_context=storage_context)
-        # self.listindex = ListIndex(nodes=nodes)
-        # save index to disk
+
         self.vectorstoreindex.storage_context.persist(f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}')
         self._semantic_query_engine = None
         return self.vectorstoreindex
 
-    def loadIndex(self, reload_from_disk=False):
-        if self.vectorstoreindex is None or reload_from_disk==True:
+    # def loadIndex(self, reload_from_disk=False):
+    #     if self.vectorstoreindex is None or reload_from_disk==True:
         
-            persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'
-            # vector_store = FaissVectorStore.from_persist_dir(persist_dir)
-            storage_context = StorageContext.from_defaults(
-                persist_dir=persist_dir
-            )
-            self.vectorstoreindex = load_index_from_storage(storage_context=storage_context)
-            self._semantic_query_engine = None
-        return self.vectorstoreindex
+    #         persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'
+    #         # vector_store = FaissVectorStore.from_persist_dir(persist_dir)
+    #         storage_context = StorageContext.from_defaults(
+    #             persist_dir=persist_dir
+    #         )
+    #         self.vectorstoreindex = load_index_from_storage(storage_context=storage_context)
+    #         self._semantic_query_engine = None
+    #     return self.vectorstoreindex
     
     def _getVectorStoreIndex(self, reload=False):
         persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'
@@ -99,6 +103,20 @@ class Indexer:
             self._semantic_query_engine = None
             return self.vectorstoreindex
         return self._buildVectorStoreIndex()
+    
+    def _buildVectorStoreIndex_supabase(self):
+        self.vector_store = SupabaseVectorStore(
+            postgres_connection_string=SUPABASE_CONNECTION_STRING, 
+            collection_name='build_club_members'
+        )
+        
+        storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
+        logging.log(logging.INFO, f'===BUILD VECTOR STORE INDEX FOR SUPABASE===')
+        nodes = self.reader.extract_nodes()
+        self.vectorstoreindex = VectorStoreIndex.from_vector_store(self.vector_store)
+        # self.vectorstoreindex = VectorStoreIndex(nodes=nodes, storage_context=storage_context)
+        return self.vectorstoreindex
+
     
     @property
     def semantic_query_engine(self):
@@ -121,10 +139,9 @@ class Indexer:
     # to do create vector store retriever as tool 
     # to have function calling /workspaces/ml-learning/.venv/lib/python3.11/site-packages/llama_index/core/indices/vector_store/retrievers/retriever.py
 
-    def _design_build_club_members_table(self) -> Table:
-        logging.log(logging.INFO, f'Design build_club_members table')
-        metadata_obj = self.default_schema
-        table_name = "build_club_members"
+    def _design_build_club_members_table(self, default_schema, table_name:str) -> Table:
+        logging.log(logging.INFO, f'Design {table_name} table')
+        metadata_obj = default_schema
         build_club_members = Table(
             table_name,
             metadata_obj,
@@ -154,22 +171,37 @@ class Indexer:
         # metadata_obj.create_all(self.engine)
         return build_club_members
     
-    def _getSQLDatabase(self):
-        logging.log(logging.INFO, f'===BUILDING NEW=== Initializing sqlite in memory')
-        self.engine = create_engine("sqlite:///:memory:")
+    def _createTableBuildClubMemberIfNotExists(self):
+        self.engine = create_engine(DB_CONNECTION)
         self.default_schema = MetaData()
-        self._table = self._design_build_club_members_table()
+        self._table = self._design_build_club_members_table(self.default_schema, "build_club_members")
         self.default_schema.create_all(self.engine)
+    
+    def _getSQLDatabase(self):
+        # logging.log(logging.INFO, f'===BUILDING NEW=== Initializing sqlite in memory')
+        # self.engine = create_engine("sqlite:///:memory:")
+        # self.default_schema = MetaData()
+        # self._table = self._design_build_club_members_table()
+        # self.default_schema.create_all(self.engine)
 
-        rows = self.reader.extract_rows2()
+        # Create an engine
+        engine = create_engine(DB_CONNECTION)
 
-        for row in rows:
-            stmt = insert(self._table).values(**row)
-            with self.engine.begin() as connection:
-                cursor = connection.execute(stmt)
-        logging.log(logging.INFO, f'===YAY=== All rows inserted in build_club_members table')
+        # # Initialize metadata
+        # metadata = MetaData()
 
-        self._sql_database = SQLDatabase(self.engine, include_tables=["build_club_members"])
+        # # Reflect the table
+        # build_club_members = Table('build_club_members', metadata, autoload_with=engine)
+
+        # rows = self.reader.extract_rows2()
+
+        # for row in rows:
+        #     stmt = insert(build_club_members).values(**row)
+        #     with self.engine.begin() as connection:
+        #         cursor = connection.execute(stmt)
+        # logging.log(logging.INFO, f'===YAY=== All rows inserted in build_club_members table')
+
+        self._sql_database = SQLDatabase(engine, include_tables=["build_club_members"])
         self._db_query_engine = None
         return self._sql_database
     
