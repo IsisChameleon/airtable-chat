@@ -10,11 +10,10 @@ class Sidebar:
 
     @staticmethod
     def about():
-        about = st.sidebar.expander("Find My Db 🤖")
+        about = st.sidebar.expander("Talk about Build Club members 🤖")
         sections = [
-            "#### Vector Database",
             "#### Powered by [Llamaindex](), [OpenAI](https://platform.openai.com/docs/models/gpt-3-5) and [Streamlit](https://github.com/streamlit/streamlit) ⚡",
-            "#### Source code: [isisChameleon/airtable-chatbot](https://github.com/IsisChameleon)",
+            "#### Source code: [isisChameleon/airtable-chatbot](https://github.com/IsisChameleon/airtable-chat)",
         ]
         for section in sections:
             about.write(section)
@@ -49,13 +48,13 @@ class Sidebar:
     def show_options(self):
         if "tweak" not in st.session_state:
             st.session_state.tweak = False
-        with st.sidebar.expander("⚙️ Tweak Niddy", expanded=False):
+        with st.sidebar.expander("⚙️ Tweak Me", expanded=False):
 
             self.reset_chat_button()
-            self.model_selector()
-            # self.temperature_slider()
-            st.session_state.setdefault("model", self.MODEL_OPTIONS[0])
-            st.session_state.setdefault("temperature", self.TEMPERATURE_DEFAULT_VALUE)
+            # self.model_selector()
+            # # self.temperature_slider()
+            # st.session_state.setdefault("model", self.MODEL_OPTIONS[0])
+            # st.session_state.setdefault("temperature", self.TEMPERATURE_DEFAULT_VALUE)
 
     #Contact
     @staticmethod
@@ -63,7 +62,7 @@ class Sidebar:
         
         with st.sidebar.expander("📧 Contact"):
 
-            st.write("**GitHub:** [Vector Db Chat](https://github.com/IsisChameleon/vectordb-chat)")
+            st.write("**GitHub:** [Build Club Members Chat](https://github.com/IsisChameleon/airtable-chat)")
             st.write("**Made for ** [The Builders Club](https://www.thebuilderclub.org/)")
             st.write("**Contributions or suggestions welcome! ** : isisdesade@gmail.com")
 

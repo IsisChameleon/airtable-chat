@@ -6,3 +6,4 @@ openai
 pyairtable #2.2.2
 faiss
 psycopg2 #2.9.9
+sqlalchemy.orm #1.2.10

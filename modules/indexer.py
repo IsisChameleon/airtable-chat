@@ -11,6 +11,7 @@ from llama_index.core.prompts.prompt_type import PromptType
 from llama_index.core.query_engine import NLSQLTableQueryEngine
 from llama_index.core.retrievers import NLSQLRetriever
 from llama_index.core.tools import QueryEngineTool, ToolMetadata, RetrieverTool
+from llama_index.core.postprocessor.llm_rerank import LLMRerank
 
 from modules.reader import CustomAirtableReader
 from modules.airtableprompts  import TEXT_TO_SQL_PROMPT
@@ -122,9 +123,11 @@ class Indexer:
     def semantic_query_engine(self):
         if self.vectorstoreindex is None:
             _ = self._getVectorStoreIndex(reload=False)
-        if self._semantic_query_engine is None:
-            llm = OpenAI(model="gpt-4", temperature=0)
-            self._semantic_query_engine = self.vectorstoreindex.as_query_engine(llm=llm)
+        # if self._semantic_query_engine is None:
+        llm = OpenAI(model="gpt-4", temperature=0)
+        print('NODE POSTPROCESSOR LLMRERANK')
+        node_postprocessor = LLMRerank(llm=llm)
+        self._semantic_query_engine = self.vectorstoreindex.as_query_engine(llm=llm, node_postprocessor=node_postprocessor)
         return self._semantic_query_engine
 
     @property
@@ -138,44 +141,6 @@ class Indexer:
     
     # to do create vector store retriever as tool 
     # to have function calling /workspaces/ml-learning/.venv/lib/python3.11/site-packages/llama_index/core/indices/vector_store/retrievers/retriever.py
-
-    def _design_build_club_members_table(self, default_schema, table_name:str) -> Table:
-        logging.log(logging.INFO, f'Design {table_name} table')
-        metadata_obj = default_schema
-        build_club_members = Table(
-            table_name,
-            metadata_obj,
-            Column("id", String(256), primary_key=True),
-            Column("name", String(256)),
-            Column("linkedin_url", String(512)),
-            Column("skill_1", String(128)),
-            Column("skill_2", String(128)),
-            Column("skill_3", String(128)),
-            Column("skill_4", String(128)),
-            Column("based_in_sydney", String(256)),
-            Column("member_location", String(256)),
-            Column("member_acceptance_in_club", Boolean()),
-            Column("ai_builder_linkedin_badge", String(256)),
-            Column("referee", String(256)),
-            Column("referrer_name", String(256)),
-            Column("assignee", String(256)),
-            Column("status", String(256)),
-            Column("phone_number", String(256)),
-            Column("are_you_building_in_squad", String(1024)),
-            Column("best_time_for_build_sessions", String(1024)),
-            Column("keen_for_ai_meetup", String(128)),
-            Column("expectation_from_joining_club", String(4096)),
-            Column("build_project", String(4096)),
-            Column("past_work", String(4096))
-        )
-        # metadata_obj.create_all(self.engine)
-        return build_club_members
-    
-    def _createTableBuildClubMemberIfNotExists(self):
-        self.engine = create_engine(DB_CONNECTION)
-        self.default_schema = MetaData()
-        self._table = self._design_build_club_members_table(self.default_schema, "build_club_members")
-        self.default_schema.create_all(self.engine)
     
     def _getSQLDatabase(self):
         # logging.log(logging.INFO, f'===BUILDING NEW=== Initializing sqlite in memory')
@@ -263,6 +228,7 @@ class Indexer:
     
     @property
     def tools(self):
+        print('GETTTING TOOLS ####################################')
         if self._db_query_engine_tool is None:
             self._db_query_engine_tool = QueryEngineTool(
                 query_engine=self.db_query_engine,
@@ -271,13 +237,13 @@ class Indexer:
                     description="useful for when you want to answer queries about members career or role (skills), linked in url, name, skills.",
                 ),
         )
-        if self._semantic_query_engine_tool is None:
-            self._semantic_query_engine_tool = QueryEngineTool(
-                query_engine=self.semantic_query_engine,
-                metadata=ToolMetadata(
-                        name="semantic_query_engine",
-                        description="useful for when you want to answer queries about members present and past projects and startups, or what they are building",
-                    ),
+        # if self._semantic_query_engine_tool is None:
+        self._semantic_query_engine_tool = QueryEngineTool(
+            query_engine=self.semantic_query_engine,
+            metadata=ToolMetadata(
+                    name="semantic_query_engine",
+                    description="useful for when you want to answer queries about members present and past projects and startups, or what they are building",
+                ),
         )
         return [self._db_query_engine_tool, self._semantic_query_engine_tool]
     

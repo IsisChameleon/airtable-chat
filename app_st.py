@@ -12,7 +12,7 @@ import streamlit as st
 from streamlit_chat import message
 
 from sidebar_st import Sidebar
-from modules.chat_agent import ChatAgent, ChatAgentRouterQueryEngine
+from modules.chat_agent import ChatAgent, ChatAgentRouterQueryEngine, ChatAgentReact
 from modules.chathistory import ChatHistory
 from modules.reader import CustomAirtableReader
 from modules.indexer import Indexer
@@ -41,10 +41,12 @@ def setupChatAgent():
     index_name = INDEX_NAMES[config['TABLE']]
 
     indexer = Indexer(reader, index_name)
+    print('setup ChatAGENT tools ..... ')
     tools = indexer.tools
+    print('setup ChatAGENT tools fetched ..... ')
     if tools is None or len(tools)<1:
         raise ValueError('No retrieval tool detected, please add a tool for the agent')
-    return ChatAgentRouterQueryEngine(tools)
+    return ChatAgentReact(tools)
 
 def initConversation():
     history = ChatHistory()
@@ -136,5 +138,6 @@ def main_processing():
 
 
 sidebar.show_contact()
+sidebar.show_options()
 main_processing()
 
