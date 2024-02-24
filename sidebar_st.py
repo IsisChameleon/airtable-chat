@@ -48,7 +48,7 @@ class Sidebar:
     def show_options(self):
         if "tweak" not in st.session_state:
             st.session_state.tweak = False
-        with st.sidebar.expander("⚙️ Tweak Me", expanded=False):
+        with st.sidebar.expander("⚙️ Tweak Me", expanded=True):
 
             self.reset_chat_button()
             # self.model_selector()

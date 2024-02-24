@@ -3,7 +3,7 @@ from llama_index.core.indices import VectorStoreIndex, ListIndex
 from llama_index.llms.openai import OpenAI
 
 from llama_index.legacy.vector_stores.faiss import FaissVectorStore
-from llama_index.legacy.vector_stores import SupabaseVectorStore
+from llama_index.vector_stores.supabase import SupabaseVectorStore
 from llama_index.core.readers.base import BaseReader
 from llama_index.core import SQLDatabase
 from llama_index.core.prompts.base import PromptTemplate
@@ -105,35 +105,44 @@ class Indexer:
             return self.vectorstoreindex
         return self._buildVectorStoreIndex()
     
-    def _buildVectorStoreIndex_supabase(self):
+    def _getVectorStoreIndex_supabase(self):
         self.vector_store = SupabaseVectorStore(
             postgres_connection_string=SUPABASE_CONNECTION_STRING, 
-            collection_name='build_club_members'
+            collection_name='members_and_build_updates'
         )
-        
-        storage_context = StorageContext.from_defaults(vector_store=self.vector_store)
-        logging.log(logging.INFO, f'===BUILD VECTOR STORE INDEX FOR SUPABASE===')
+        # TO DO: query vector store to find out if there is anything we need to build 
+        # if YES: build vector store index, if NO: return without building
+        logging.log(logging.INFO, f'===Get VectorStoreIndex from SUPABASE=== members_and_build_updates')
+        self.vectorstoreindex = VectorStoreIndex.from_vector_store(self.vector_store, use_async=True)
+        return self.vectorstoreindex
+
+    def _buildVectorStoreIndex_supabase(self):
+        logging.log(logging.INFO, f'===BUILD VECTOR STORE INDEX insert nodes into supabase === members_and_build_updates')
         nodes = self.reader.extract_nodes()
-        self.vectorstoreindex = VectorStoreIndex.from_vector_store(self.vector_store)
-        # self.vectorstoreindex = VectorStoreIndex(nodes=nodes, storage_context=storage_context)
+        self.vector_store = SupabaseVectorStore(
+            postgres_connection_string=SUPABASE_CONNECTION_STRING, 
+            collection_name='members_and_build_updates'
+        )
+        self.vectorstoreindex = VectorStoreIndex.from_vector_store(self.vector_store, use_async=True)
+        self.vectorstoreindex.insert_nodes(nodes)
         return self.vectorstoreindex
 
     
     @property
     def semantic_query_engine(self):
         if self.vectorstoreindex is None:
-            _ = self._getVectorStoreIndex(reload=False)
+            _ = self._getVectorStoreIndex_supabase()
         # if self._semantic_query_engine is None:
         llm = OpenAI(model="gpt-4", temperature=0)
         print('NODE POSTPROCESSOR LLMRERANK')
         node_postprocessor = LLMRerank(llm=llm)
-        self._semantic_query_engine = self.vectorstoreindex.as_query_engine(llm=llm, node_postprocessor=node_postprocessor)
+        self._semantic_query_engine = self.vectorstoreindex.as_query_engine(llm=llm, node_postprocessors=[node_postprocessor])
         return self._semantic_query_engine
 
     @property
     def semantic_retriever(self):
         if self.vectorstoreindex is None:
-            _ = self._getVectorStoreIndex(reload=False)
+            _ = self._getVectorStoreIndex_supabase()
         if self._semantic_retriever is None:
             llm = OpenAI(model="gpt-4", temperature=0)
             self._semantic_retriever = self.vectorstoreindex.as_retriever(llm=llm)
@@ -143,28 +152,7 @@ class Indexer:
     # to have function calling /workspaces/ml-learning/.venv/lib/python3.11/site-packages/llama_index/core/indices/vector_store/retrievers/retriever.py
     
     def _getSQLDatabase(self):
-        # logging.log(logging.INFO, f'===BUILDING NEW=== Initializing sqlite in memory')
-        # self.engine = create_engine("sqlite:///:memory:")
-        # self.default_schema = MetaData()
-        # self._table = self._design_build_club_members_table()
-        # self.default_schema.create_all(self.engine)
-
-        # Create an engine
-        engine = create_engine(DB_CONNECTION)
-
-        # # Initialize metadata
-        # metadata = MetaData()
-
-        # # Reflect the table
-        # build_club_members = Table('build_club_members', metadata, autoload_with=engine)
-
-        # rows = self.reader.extract_rows2()
-
-        # for row in rows:
-        #     stmt = insert(build_club_members).values(**row)
-        #     with self.engine.begin() as connection:
-        #         cursor = connection.execute(stmt)
-        # logging.log(logging.INFO, f'===YAY=== All rows inserted in build_club_members table')
+        engine = create_engine(DB_CONNECTION, pool_pre_ping=True)
 
         self._sql_database = SQLDatabase(engine, include_tables=["build_club_members"])
         self._db_query_engine = None
@@ -183,6 +171,9 @@ class Indexer:
                 sql_database=self._sql_database,
                 llm=llm,
                 tables=["build_club_members"],
+                context_query_kwargs={
+                    "build_club_members": "This table contains the members of the build club"
+                },
                 text_to_sql_prompt=TEXT_TO_SQL_PROMPT,
                 verbose=True
             )
@@ -190,22 +181,6 @@ class Indexer:
         logging.log(logging.INFO, f'Returning Db query engine')
         return self._db_query_engine
 
-
-        # sql_database (SQLDatabase): SQL database.
-        # text_to_sql_prompt (BasePromptTemplate): Prompt template for text-to-sql.
-        #     Defaults to DEFAULT_TEXT_TO_SQL_PROMPT.
-        # context_query_kwargs (dict): Mapping from table name to context query.
-        #     Defaults to None.
-        # tables (Union[List[str], List[Table]]): List of table names or Table objects.
-        # table_retriever (ObjectRetriever[SQLTableSchema]): Object retriever for
-        #     SQLTableSchema objects. Defaults to None.
-        # context_str_prefix (str): Prefix for context string. Defaults to None.
-        # service_context (ServiceContext): Service context. Defaults to None.
-        # return_raw (bool): Whether to return plain-text dump of SQL results, or parsed into Nodes.
-        # handle_sql_errors (bool): Whether to handle SQL errors. Defaults to True.
-        # sql_only (bool) : Whether to get only sql and not the sql query result.
-        #     Default to False.
-        # llm (Optional[LLM]): Language model to use.
     @property
     def db_retriever(self):
         logging.log(logging.INFO, f'===db_retriever===')
@@ -228,13 +203,13 @@ class Indexer:
     
     @property
     def tools(self):
-        print('GETTTING TOOLS ####################################')
+        # print('GETTTING TOOLS ####################################')
         if self._db_query_engine_tool is None:
             self._db_query_engine_tool = QueryEngineTool(
                 query_engine=self.db_query_engine,
                 metadata=ToolMetadata(
                     name="db_query_engine",
-                    description="useful for when you want to answer queries about members career or role (skills), linked in url, name, skills.",
+                    description="Retrieve information using SQL queries: useful for when you want to answer queries about members career or role, if they are accepted in the club, linked in url, name, skills.",
                 ),
         )
         # if self._semantic_query_engine_tool is None:
@@ -242,7 +217,7 @@ class Indexer:
             query_engine=self.semantic_query_engine,
             metadata=ToolMetadata(
                     name="semantic_query_engine",
-                    description="useful for when you want to answer queries about members present and past projects and startups, or what they are building",
+                    description="""Semantic search: useful for when you want to answer queries about members present and past projects and startups, what they are building, and what are their interests and passions""",
                 ),
         )
         return [self._db_query_engine_tool, self._semantic_query_engine_tool]

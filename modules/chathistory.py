@@ -1,4 +1,5 @@
 import streamlit as st
+from modules.references import display_references
 
 class ChatHistory:
     
@@ -15,9 +16,11 @@ class ChatHistory:
     def display_chat_messages_history(self):
         # Display chat messages from history
         for message in st.session_state.messages:
-            print('history: ---------------------------\n', st.session_state.messages, '\n')
+            print('history: ---------------------------\n', message, '\n')
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
+                if 'references' in message:
+                    display_references(message.get('references', []))
 
     def initialize(self):
         st.session_state.messages = []

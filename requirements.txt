@@ -4,6 +4,7 @@ python-dotenv
 llamaindex #0.10.3
 openai 
 pyairtable #2.2.2
-faiss
 psycopg2 #2.9.9
 sqlalchemy.orm #1.2.10
+vecs #0.4.2 pgvector client
+llama-index-vector-stores-supabase #0.1.2

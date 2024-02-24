@@ -4,6 +4,7 @@ from itertools import zip_longest
 import os
 import logging
 import sys
+import pandas as pd
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
@@ -18,6 +19,7 @@ from modules.references import display_references
 from modules.reader import CustomAirtableReader
 from modules.indexer import Indexer
 from modules.airtableconfig import INDEX_NAMES, AIRTABLE_CONFIG
+from modules.st_dataframes import filter_dataframe
 
 # Load environment variables
 
@@ -34,6 +36,7 @@ def setupChatAgent():
     with st.status("Setting up chat agent...", expanded=True) as status:
         config = AIRTABLE_CONFIG['BuildBountyMembersGenAI']
         reader = CustomAirtableReader()
+        st.session_state['reader']=reader
 
         st.write("Setting up db query engine...")
         index_name = INDEX_NAMES[config['TABLE']]
@@ -122,30 +125,45 @@ def main_processing():
         st.session_state["chatbot"] = chatbot
         st.session_state["history"] = history 
 
-    st.session_state["history"].display_chat_messages_history()
-    
-    # Accept user input
-    if prompt := st.chat_input("Please ask a question..."):
-        # Display user message in chat message container
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
+
+    tab_chat, tab_explorer = st.tabs(['chat', 'explore'])
+    with tab_chat:
+
+        st.session_state["history"].display_chat_messages_history()
         
-        with st.chat_message("assistant"):
-            message_placeholder = st.empty()
-            full_response = ""
-            assistant_response, references = st.session_state["chatbot"].chat(prompt)
-            message_placeholder.markdown(assistant_response)
-            if references is not None and len(references)>0:
-                display_references(references)
-
+        # Accept user input
+        if prompt := st.chat_input("Please ask a question..."):
+            # Display user message in chat message container
+            with st.chat_message("user"):
+                st.markdown(prompt)
+            # Add user message to chat history
+            st.session_state.messages.append({"role": "user", "content": prompt})
             
-        # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": assistant_response, "references": references})
+            with st.chat_message("assistant"):
+                message_placeholder = st.empty()
+                full_response = ""
+                assistant_response, references = st.session_state["chatbot"].chat(prompt)
+                message_placeholder.markdown(assistant_response)
+                if references is not None and len(references)>0:
+                    display_references(references)
+
+                
+            # Add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": assistant_response, "references": references})
+
+    # with tab_explorer:
+    #     reader = st.session_state.get('reader', CustomAirtableReader())
+
+    #     if not st_exists('df_members'):
+
+    #         df = pd.DataFrame(reader.extract_rows_for_dataframe())
+    #         st.session_state['df_members'] = df
+
+    #     filter_dataframe(st.session_state['df_members'])
 
 
-sidebar.show_contact()
+
 sidebar.show_options()
+sidebar.show_contact()
 main_processing()
 
