@@ -12,6 +12,7 @@ from llama_index.core.query_engine import NLSQLTableQueryEngine
 from llama_index.core.retrievers import NLSQLRetriever
 from llama_index.core.tools import QueryEngineTool, ToolMetadata, RetrieverTool
 from llama_index.core.postprocessor.llm_rerank import LLMRerank
+from llama_index.core.postprocessor import SimilarityPostprocessor
 
 from modules.reader import CustomAirtableReader
 from modules.airtableprompts  import TEXT_TO_SQL_PROMPT
@@ -135,8 +136,14 @@ class Indexer:
         # if self._semantic_query_engine is None:
         llm = OpenAI(model="gpt-4", temperature=0)
         print('NODE POSTPROCESSOR LLMRERANK')
-        node_postprocessor = LLMRerank(llm=llm)
-        self._semantic_query_engine = self.vectorstoreindex.as_query_engine(llm=llm, node_postprocessors=[node_postprocessor])
+        node_postprocessor_1 = SimilarityPostprocessor(similarity_cutoff=0.75)
+        node_postprocessor_2 = LLMRerank(llm=llm)
+        self._semantic_query_engine = self.vectorstoreindex.as_query_engine(
+            llm=llm, 
+            # retriever kwargs
+            similarity_top_k=8, 
+            # post processing
+            node_postprocessors=[node_postprocessor_1, node_postprocessor_2])
         return self._semantic_query_engine
 
     @property

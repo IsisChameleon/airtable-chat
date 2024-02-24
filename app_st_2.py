@@ -36,7 +36,7 @@ def setupChatAgent():
     with st.status("Setting up chat agent...", expanded=True) as status:
         config = AIRTABLE_CONFIG['BuildBountyMembersGenAI']
         reader = CustomAirtableReader()
-        st.session_state['reader']=reader
+        st.session_state['reader']=reader #XX
 
         st.write("Setting up db query engine...")
         index_name = INDEX_NAMES[config['TABLE']]
@@ -105,10 +105,10 @@ def api_key_present():
 def st_exists(name: str):
     return name in st.session_state and name != ""
 
-def initConversation():
-    history = ChatHistory()
-    history.initialize()
-    return setupChatAgent(), history
+# def initConversation():
+#     history = ChatHistory()
+#     history.initialize()
+#     return setupChatAgent(), history
 
 def main_processing():
     if not api_key_present():
@@ -141,7 +141,6 @@ def main_processing():
             
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
-                full_response = ""
                 assistant_response, references = st.session_state["chatbot"].chat(prompt)
                 message_placeholder.markdown(assistant_response)
                 if references is not None and len(references)>0:

@@ -4,6 +4,7 @@ from itertools import zip_longest
 import os
 import logging
 import sys
+import pandas as pd
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
@@ -14,7 +15,7 @@ from streamlit_chat import message
 from sidebar_st import Sidebar
 from modules.chat_agent import ChatAgent, ChatAgentRouterQueryEngine, ChatAgentReact
 from modules.chathistory import ChatHistory
-from modules.references import display_references
+from modules.references import display_references, display_ref
 from modules.reader import CustomAirtableReader
 from modules.indexer import Indexer
 from modules.airtableconfig import INDEX_NAMES, AIRTABLE_CONFIG
@@ -34,6 +35,7 @@ def setupChatAgent():
     with st.status("Setting up chat agent...", expanded=True) as status:
         config = AIRTABLE_CONFIG['BuildBountyMembersGenAI']
         reader = CustomAirtableReader()
+        st.session_state['reader']=reader
 
         st.write("Setting up db query engine...")
         index_name = INDEX_NAMES[config['TABLE']]
@@ -102,10 +104,10 @@ def api_key_present():
 def st_exists(name: str):
     return name in st.session_state and name != ""
 
-def initConversation():
-    history = ChatHistory()
-    history.initialize()
-    return setupChatAgent(), history
+# def initConversation():
+#     history = ChatHistory()
+#     history.initialize()
+#     return setupChatAgent(), history
 
 def main_processing():
     if not api_key_present():
@@ -122,6 +124,9 @@ def main_processing():
         st.session_state["chatbot"] = chatbot
         st.session_state["history"] = history 
 
+
+    # CHAT
+
     st.session_state["history"].display_chat_messages_history()
     
     # Accept user input
@@ -134,11 +139,11 @@ def main_processing():
         
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
-            full_response = ""
             assistant_response, references = st.session_state["chatbot"].chat(prompt)
             message_placeholder.markdown(assistant_response)
+            # response = st.write_stream
             if references is not None and len(references)>0:
-                display_references(references)
+                display_ref(references)
 
             
         # Add assistant response to chat history

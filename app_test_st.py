@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from llama_index.core.schema import NodeWithScore, TextNode
 
 # Sample DataFrame
 data = {'Name': ['Alice', 'Bob', 'Charlie'],

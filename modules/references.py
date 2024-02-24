@@ -32,14 +32,43 @@ from sqlalchemy import (
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
+from modules.reader import CustomAirtableReader
+from pyairtable import Table, Api, Base
+from modules.airtableconfig import AIRTABLE_CONFIG
+api = Api(AIRTABLE_CONFIG['BuildBountyMembersGenAI']['TOKEN'])
+base_id = AIRTABLE_CONFIG['BuildBountyMembersGenAI']['BASE']
+member_table_id = AIRTABLE_CONFIG['BuildBountyMembersGenAI']['TABLE']
+build_update_table_id = AIRTABLE_CONFIG['BuildBountyBuildUpdates']['TABLE']
+
 import io
 import streamlit as st
 from streamlit_chat import message
+import re
 
 def display_references(references):
     if references is not None and len(references)>1:
         source_placeholder=st.empty()
         source_placeholder.markdown(references)
+
+
+
+def format_newlines_for_markdown(s):
+    # Step 1: Replace "\n\n" with a temporary placeholder
+    s = re.sub(r'\n\n', 'TEMP_NEWLINE_PLACEHOLDER', s)
+
+    # Step 2: Replace "\n" with "\n  "
+    s = re.sub(r'\n', '\n  ', s)
+
+    # Step 3: Replace the temporary placeholder with "\n\n  "
+    s = re.sub('TEMP_NEWLINE_PLACEHOLDER', '\n\n  ', s)
+
+    return s
+
+# Example usage
+original_string = "This is a test string.\nIt contains newlines.\n\nAnd double newlines."
+formatted_string = format_newlines_for_markdown(original_string)
+print(formatted_string)
+
 
 def get_profile_picture(name):
     engine = create_engine(DB_CONNECTION, pool_pre_ping=True)
@@ -70,9 +99,63 @@ def display_ref(nodes_with_score: List[NodeWithScore]):
 
     # Extracting data from each NodeWithScore object
     for node in nodes_with_score:
+        print(f'=====================metadata keys: {node.node.metadata.keys()}')
+        # ['airtable_id', 'skills', 'member_name', 'linkedin_url', 'referrer_name', 'keen_for_ai_meetup', 'accepted', 'record_type', 'extracted_timestamp']
         row_data = node.node.metadata.copy()  # Copy metadata dictionary
-        row_data['text'] = node.node.text     # Add text property to the dictionary
-        data.append(row_data)
+        if row_data is None or row_data == {}:
+            next
+
+        if row_data.get('record_type')=='build_club_members':
+            member_table = api.table(base_id, member_table_id)
+            print(f"row_data['airtable_id'] {row_data['airtable_id']}")
+            member_record = member_table.get(row_data['airtable_id'])
+            reader = CustomAirtableReader()
+            metadata = reader.extract_metadata_member(member_record)
+            image_url = reader.get_image_url_from_member_record(member_record)
+
+            st.subheader(metadata['member_name'])
+            cols = st.columns([1, 3])
+            with cols[0]:
+                st.image(image_url, caption=metadata['member_name'], use_column_width='auto')
+            with cols[1]:
+                text=node.node.text
+                text = format_newlines_for_markdown(text)
+                st.markdown(text)
+
+def display_ref2(nodes_with_score: List[NodeWithScore]):
+
+    if nodes_with_score is None:
+        return
+    # Prepare a list to hold each row's data
+    data = []
+
+    # Extracting data from each NodeWithScore object
+    for node in nodes_with_score:
+        print(f'=====================metadata keys: {node.node.metadata.keys()}')
+        row_data = node.node.metadata.copy()  # Copy metadata dictionary
+        if row_data is None or row_data == {}:
+            next
+
+        if row_data.get('record_type')=='build_club_members':
+            member_table = api.table(base_id, member_table_id)
+            print(f"row_data['airtable_id'] {row_data['airtable_id']}")
+            member_record = member_table.get(row_data['airtable_id'])
+            reader = CustomAirtableReader()
+            metadata = reader.extract_metadata_member(member_record)
+
+            st.subheader(metadata['member_name'])
+            st.image(metadata['profile_picture_url'])
+            st.markdown(node.node.text)
+            st.markdown('--------------------------------------------')
+
+
+            
+        # if row_data.get('record_type')=='build_updates':
+        #     build_updates_table = api.table(base_id, build_update_table_id)
+
+        # row_data['text'] = node.node.text     # Add text property to the dictionary
+        # data.append(row_data)
+
 
     # Create DataFrame
     df = pd.DataFrame(data)

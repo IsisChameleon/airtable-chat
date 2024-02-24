@@ -174,6 +174,29 @@ class CustomAirtableReader(BaseReader):
         table = self.api.table(self.base_id, self.build_update_table_id)
         self._build_update_data = table.all()
         return self._build_update_data
+    
+    def extract_metadata_member(self, record):
+        field = record['fields']
+        # METADATA
+        extra_info = {}
+        extra_info['airtable_id'] = record['id']
+        skills = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['skills'],[])
+        extra_info['skills'] = skills
+        extra_info['member_name'] = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['name'],'Unknown member name')
+        linkedin_url = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['linkedin_url'],'')
+        extra_info['linkedin_url']=linkedin_url
+        referrer_name = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['referrer_name'],'')
+        extra_info['referrer_name']=referrer_name
+        extra_info['keen_for_ai_meetup']=field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['keen_for_ai_meetup'], False)
+        
+        member_accepted_list = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['member_acceptance_in_club'],[])
+        accepted=False
+        if len(member_accepted_list)>0:
+            if 'Accept' in member_accepted_list:
+                accepted=True
+        extra_info['accepted']=accepted
+        extra_info['record_type']='build_club_members'
+        return extra_info
 
     def  _extract_member_documents(self):     
     
@@ -217,7 +240,7 @@ class CustomAirtableReader(BaseReader):
             past_work = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['past_work'],'')
             expectation_from_joining_club = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['expectation_from_joining_club'],'')
             best_time_for_build_sessions = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['best_time_for_build_sessions'], '')
-            node_text = 'MEMBER DETAILS:\n\nn'
+            node_text = 'MEMBER DETAILS:\n\n'
             node_text+=f"Member name: {extra_info['member_name']}\n"
             if linkedin_url != '':
                 node_text+=f"LinkedIn Url: {linkedin_url}\n"
@@ -350,6 +373,16 @@ class CustomAirtableReader(BaseReader):
             skills = fields.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS["skills"], [])
             all_skills.update(skills)
         return all_skills
+
+    def get_image_url_from_member_record(self, record) -> str:
+        fields = record.get("fields", {})
+        img_lst = fields.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['profile_picture_url'], [])
+        image_el = img_lst[0] if (img_lst and len(img_lst)>0) else {}
+        image_url_thumbnails = image_el.get('thumbnails', {})
+        image_url_large = image_url_thumbnails.get('large', {})
+        image_url = image_url_large.get('url',"")
+        logging.log(logging.DEBUG, f"Profile picture url: {image_url}")
+        return image_url
     
     def extract_rows(self) -> List[dict]:
 
@@ -359,7 +392,7 @@ class CustomAirtableReader(BaseReader):
             fields = record.get("fields", {})
             transformed_detail = {}
 
-            # download image
+            # download image TODO replace with get_image_url+from_member_record
             img_lst = fields.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['profile_picture_url'], [])
             image_el = img_lst[0] if (img_lst and len(img_lst)>0) else {}
             image_url_thumbnails = image_el.get('thumbnails', {})
