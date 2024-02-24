@@ -45,12 +45,12 @@ import streamlit as st
 from streamlit_chat import message
 import re
 
+#TODO clean up this mess of extra code
+
 def display_references(references):
     if references is not None and len(references)>1:
         source_placeholder=st.empty()
         source_placeholder.markdown(references)
-
-
 
 def format_newlines_for_markdown(s):
     # Step 1: Replace "\n\n" with a temporary placeholder
@@ -61,6 +61,8 @@ def format_newlines_for_markdown(s):
 
     # Step 3: Replace the temporary placeholder with "\n\n  "
     s = re.sub('TEMP_NEWLINE_PLACEHOLDER', '\n\n  ', s)
+
+    print("Improved text:",  s)
 
     return s
 
@@ -90,6 +92,12 @@ def display_profile_picture(name):
         else:
             st.write("No profile picture found for this name.")
 
+def str_get_from(text, start):
+    start_index=text.find(start)
+    if start_index == -1:
+        return text
+    return text[start_index:]
+
 def display_ref(nodes_with_score: List[NodeWithScore]):
 
     if nodes_with_score is None:
@@ -110,17 +118,37 @@ def display_ref(nodes_with_score: List[NodeWithScore]):
             print(f"row_data['airtable_id'] {row_data['airtable_id']}")
             member_record = member_table.get(row_data['airtable_id'])
             reader = CustomAirtableReader()
-            metadata = reader.extract_metadata_member(member_record)
+            metadata, semantic_info = reader.extract_metadata_member(member_record)
             image_url = reader.get_image_url_from_member_record(member_record)
+            linkedin_url = metadata.get('linkedin_url', '')
 
-            st.subheader(metadata['member_name'])
-            cols = st.columns([1, 3])
-            with cols[0]:
-                st.image(image_url, caption=metadata['member_name'], use_column_width='auto')
-            with cols[1]:
-                text=node.node.text
-                text = format_newlines_for_markdown(text)
-                st.markdown(text)
+            linkedin_icon_html=f"<a href='{linkedin_url}' target = '_blank' <img src='https://icons8.com/icon/13930/linkedin' alt='LinkedIn'>  </a>"
+
+            
+            with st.container(border = True):
+                cols = st.columns([3, 1, 8])
+                with cols[0]:
+                    st.markdown(f"#### [{metadata['member_name']}]({linkedin_url})")
+                    st.image(image_url, use_column_width='auto')
+                    # st.markdown(linkedin_icon_html, unsafe_allow_html=True)
+                    # st.image(https://icons8.com/icon/13930/linkedin)]({linkedin_url})")
+                with cols[2]:
+                    text=node.node.text
+                    # from_build_project=str_get_from(text, "Build Project")
+                    st.write(f"**{','.join(metadata.get('skills', []))}**")
+                    # st.markdown(metadata.get('skills', []))
+                    st.write()
+                    st.markdown(semantic_info.get('build_project', ''))
+                    st.markdown(semantic_info.get('past_work', ''))
+                    # st.markdown('--------------------------------------------')
+                    # text = format_newlines_for_markdown(text)
+                    # # st.write(metadata.get('skills', []))
+                    # st.markdown(text)
+                    # st.markdown('--------------------------------------------')
+                    # text2 = format_newlines_for_markdown(from_build_project)
+                    # # st.write(metadata.get('skills', []))
+                    # st.markdown(text2)
+                # st.markdown('--------------------------------------------')
 
 def display_ref2(nodes_with_score: List[NodeWithScore]):
 
@@ -146,7 +174,6 @@ def display_ref2(nodes_with_score: List[NodeWithScore]):
             st.subheader(metadata['member_name'])
             st.image(metadata['profile_picture_url'])
             st.markdown(node.node.text)
-            st.markdown('--------------------------------------------')
 
 
             

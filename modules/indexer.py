@@ -136,14 +136,14 @@ class Indexer:
         # if self._semantic_query_engine is None:
         llm = OpenAI(model="gpt-4", temperature=0)
         print('NODE POSTPROCESSOR LLMRERANK')
-        node_postprocessor_1 = SimilarityPostprocessor(similarity_cutoff=0.75)
+        # node_postprocessor_1 = SimilarityPostprocessor(similarity_cutoff=0.75)
         node_postprocessor_2 = LLMRerank(llm=llm)
         self._semantic_query_engine = self.vectorstoreindex.as_query_engine(
             llm=llm, 
             # retriever kwargs
             similarity_top_k=8, 
             # post processing
-            node_postprocessors=[node_postprocessor_1, node_postprocessor_2])
+            node_postprocessors=[node_postprocessor_2])
         return self._semantic_query_engine
 
     @property

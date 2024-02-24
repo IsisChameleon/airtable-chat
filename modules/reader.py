@@ -196,7 +196,15 @@ class CustomAirtableReader(BaseReader):
                 accepted=True
         extra_info['accepted']=accepted
         extra_info['record_type']='build_club_members'
-        return extra_info
+        location = 'Sydney' if field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['based_in_sydney'], 'No') == 'Yes' else field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['member_location'], '')
+        extra_info['location']=location
+
+        # TODO maybe not keep this here?
+        build_project = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['build_project'],'') 
+        past_work = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['past_work'],'')
+        semantic_info = { 'build_project': build_project, 'past_work': past_work }
+
+        return extra_info, semantic_info
 
     def  _extract_member_documents(self):     
     
