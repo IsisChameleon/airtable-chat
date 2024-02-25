@@ -177,6 +177,7 @@ class CustomAirtableReader(BaseReader):
     
     def extract_metadata_member(self, record):
         field = record['fields']
+
         # METADATA
         extra_info = {}
         extra_info['airtable_id'] = record['id']
@@ -200,9 +201,18 @@ class CustomAirtableReader(BaseReader):
         extra_info['location']=location
 
         # TODO maybe not keep this here?
-        build_project = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['build_project'],'') 
+        build_in_squad = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['are_you_building_in_squad'], '')
+        build_project = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['build_project'],'')
         past_work = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['past_work'],'')
-        semantic_info = { 'build_project': build_project, 'past_work': past_work }
+        expectation_from_joining_club = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['expectation_from_joining_club'],'')
+        best_time_for_build_sessions = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['best_time_for_build_sessions'], '')
+        semantic_info = { 
+            'build_project': build_project, 
+            'past_work': past_work,
+            'build_in_squad': build_in_squad,
+            'expectation_from_joining_club': expectation_from_joining_club,
+            'best_time_for_build_sessions': best_time_for_build_sessions
+            }
 
         return extra_info, semantic_info
 
@@ -210,44 +220,54 @@ class CustomAirtableReader(BaseReader):
     
         all_records = self.member_data
 
-        # # Extract the 'fields' content from each element
-        # fields = [item['fields'] for item in all_records]
-
         documents = []
         for record in all_records:
             field = record['fields']
             logging.log(logging.DEBUG, f"===FIELD EXTRACTED FROM AIRTABLE===\n {field}")
 
             # METADATA
-            extra_info = {}
-            extra_info['airtable_id'] = record['id']
-            skills = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['skills'],[])
-            extra_info['skills'] = skills
-            extra_info['member_name'] = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['name'],'Unknown member name')
-            linkedin_url = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['linkedin_url'],'')
-            extra_info['linkedin_url']=linkedin_url
-            referrer_name = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['referrer_name'],'')
-            extra_info['referrer_name']=referrer_name
-            extra_info['keen_for_ai_meetup']=field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['keen_for_ai_meetup'], False)
+            # extra_info = {}
+            # extra_info['airtable_id'] = record['id']
+            # skills = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['skills'],[])
+            # extra_info['skills'] = skills
+            # extra_info['member_name'] = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['name'],'Unknown member name')
+            # linkedin_url = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['linkedin_url'],'')
+            # extra_info['linkedin_url']=linkedin_url
+            # referrer_name = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['referrer_name'],'')
+            # extra_info['referrer_name']=referrer_name
+            # extra_info['keen_for_ai_meetup']=field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['keen_for_ai_meetup'], False)
             
-            member_accepted_list = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['member_acceptance_in_club'],[])
-            accepted=False
-            if len(member_accepted_list)>0:
-                if 'Accept' in member_accepted_list:
-                    accepted=True
-            extra_info['accepted']=accepted
-            extra_info['record_type']='build_club_members'
+            # member_accepted_list = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['member_acceptance_in_club'],[])
+            # accepted=False
+            # if len(member_accepted_list)>0:
+            #     if 'Accept' in member_accepted_list:
+            #         accepted=True
+            # extra_info['accepted']=accepted
+            # extra_info['record_type']='build_club_members'
+
+            extra_info, semantic_info = self.extract_metadata_member(self, record)
+
+            skills = extra_info['skills']
+            linkedin_url=extra_info['linkedin_url']
+            build_project=semantic_info['build_project']
+            past_work=semantic_info['past_work']
+            build_in_squad=semantic_info['build_in_squad']
+            expectation_from_joining_club=semantic_info['expectation_from_joining_club']
+            location=extra_info['location']
+            best_time_for_build_sessions=semantic_info['best_time_for_build_sessions']
+
 
             # Formatting the node text
 
-            build_in_squad = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['are_you_building_in_squad'], '')
-            location = 'Sydney' if field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['based_in_sydney'], 'No') == 'Yes' else field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['member_location'], '')
-            name =  extra_info['member_name']
-            linkedin_url = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['linkedin_url'],'')
-            build_project = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['build_project'],'')
-            past_work = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['past_work'],'')
-            expectation_from_joining_club = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['expectation_from_joining_club'],'')
-            best_time_for_build_sessions = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['best_time_for_build_sessions'], '')
+            # build_in_squad = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['are_you_building_in_squad'], '')
+            # location = 'Sydney' if field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['based_in_sydney'], 'No') == 'Yes' else field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['member_location'], '')
+            # name =  extra_info['member_name']
+            # linkedin_url = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['linkedin_url'],'')
+            # build_project = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['build_project'],'')
+            # past_work = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['past_work'],'')
+            # expectation_from_joining_club = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['expectation_from_joining_club'],'')
+            # best_time_for_build_sessions = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['best_time_for_build_sessions'], '')
+
             node_text = 'MEMBER DETAILS:\n\n'
             node_text+=f"Member name: {extra_info['member_name']}\n"
             if linkedin_url != '':
@@ -266,34 +286,6 @@ class CustomAirtableReader(BaseReader):
             if best_time_for_build_sessions != '':
                 node_text+=f"Best time to build: {best_time_for_build_sessions}"
             
-            # My skills include {skills}.
-            # I am currently building {build_project} {with_a_team}.
-            # In the past I worked on {past_work}.
-            # I'm hoping that joining the club will allow me to {expectation_from_joining_club}
-            # My location is {location}
-            # I'm available for building on {best_time_for_build_sessions}"""
-            
-            # # Removing "semantic" information  from metadata
-               
-            # keys_to_remove_from_metadata = [BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['build_project'],
-            #                                 BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['expectation_from_joining_club'],
-            #                                 BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['best_time_for_build_sessions'],
-            #                                 BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['are_you_building_in_squad'],
-            #                                 BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['best_time_for_build_sessions'],
-            #                                 BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['past_work']]
-
-            # for key in keys_to_remove_from_metadata:
-            #     extra_info.pop(key, None)  # The None argument ensures no error if the key doesn't exist
-
-
-            # # Update the metadata keys to the short version in BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS
-            # transformed_metadata = {key: extra_info[value] for key, value in BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS.items() if extra_info.get(value, None) is not None}
-
-            # Now extra_info contains the fields data without the specified keys
-            # print('===NODE===')
-            # print(node_text)
-            # print('===EXTRA_INFO===')
-            # print(extra_info)
             logging.log(logging.DEBUG, f"===NODE===\n {node_text}")
             logging.log(logging.DEBUG, f"===EXTRA_INFO===\n {extra_info}")
 
@@ -310,6 +302,37 @@ class CustomAirtableReader(BaseReader):
 
         return documents
     
+    def extract_metadata_build_update(self, record):
+        field = record['fields']
+
+        # METADATA
+        # TODO Put the string and the names in lowercase all of them
+        extra_info = {}
+        extra_info['airtable_id'] = record['id']
+        extra_info['member_name']=field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['member_name'], 'Unknown member name')
+        project_name = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_project_name'], field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['project_name'], ''))
+        extra_info['project_name']=project_name
+        extra_info['slack_email']=field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['slack_email'], '')
+        if field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_video_demo_available'], '') != '':
+            extra_info['build_video_demo_available']=True
+        build_update_date = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_update_date'], record.get('createdTime', ''))
+        extra_info['build_update_date']=build_update_date
+        extra_info['record_type']='build_updates'
+
+        build_this_week = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["build_this_week"], '')
+        build_url = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["build_url"], '')
+        ask = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["ask_for_community"], '')
+        milestone = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["milestone"], '')
+        customer = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["how_close_to_first_paid_customer"], '')
+        semantic_info = {
+            'build_this_week': build_this_week,
+            'build_url': build_url,
+            'ask': ask,
+            'milestone': milestone,
+            'customer': customer
+        }
+        return extra_info, semantic_info
+    
     def _extract_build_updates_documents(self):
         all_records = self.build_update_data
 
@@ -319,40 +342,47 @@ class CustomAirtableReader(BaseReader):
             field = record['fields']
             logging.log(logging.DEBUG, f"===FIELD EXTRACTED FROM AIRTABLE===\n {field}")
 
-            # METADATA
-            extra_info = {}
-            extra_info['airtable_id'] = record['id']
-            extra_info['member_name']=field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['member_name'], 'Unknown member name')
-            project_name = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_project_name'], field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['project_name'], ''))
-            extra_info['project_name']=project_name
-            extra_info['slack_email']=field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['slack_email'], '')
-            if field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_video_demo_available'], '') != '':
-                extra_info['build_video_demo_available']=True
-            build_update_date = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_update_date'], record.get('createdTime', ''))
-            extra_info['build_update_date']=build_update_date
-            extra_info['record_type']='build_updates'
+            # # METADATA
+            # extra_info = {}
+            # extra_info['airtable_id'] = record['id']
+            # extra_info['member_name']=field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['member_name'], 'Unknown member name')
+            # project_name = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_project_name'], field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['project_name'], ''))
+            # extra_info['project_name']=project_name
+            # extra_info['slack_email']=field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['slack_email'], '')
+            # if field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_video_demo_available'], '') != '':
+            #     extra_info['build_video_demo_available']=True
+            # build_update_date = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_update_date'], record.get('createdTime', ''))
+            # extra_info['build_update_date']=build_update_date
+            # extra_info['record_type']='build_updates'
 
-            #TEXT FOR SEMANTIC SEARCH
+            # #TEXT FOR SEMANTIC SEARCH
 
-            build_this_week = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["build_this_week"], '')
-            build_url = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["build_url"], '')
-            ask = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["ask_for_community"], '')
-            milestone = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["milestone"], '')
-            customer = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["how_close_to_first_paid_customer"], '')
+            # build_this_week = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["build_this_week"], '')
+            # build_url = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["build_url"], '')
+            # ask = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["ask_for_community"], '')
+            # milestone = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["milestone"], '')
+            # customer = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["how_close_to_first_paid_customer"], '')
+
+            extra_info, semantic_info = self.extract_metadata_build_update(record)
+            build_this_week = semantic_info["build_this_week"]
+            build_url = semantic_info["build_url"]
+            ask = semantic_info["ask_for_community"]
+            milestone = semantic_info["milestone"]
+            customer = semantic_info["how_close_to_first_paid_customer"]
 
             text = ''
-            text+=f"Build Update for member {extra_info['member_name']}\n"
-            text+=f'Project name: {project_name}\n'
-            text+=f'Date of update: {build_update_date[:10]}\n\n'
-            text+=f'Built this week: {build_this_week}\n'
+            text+=f"Build Update for member {extra_info['member_name']}\n  "
+            text+=f"Project name: {extra_info['project_name']}\n  "
+            text+=f"Date of update: {extra_info['build_update_date'][:10]}\n\n  "
+            text+=f'Built this week: {build_this_week}\n  '
             if build_url != '': 
-                text+=f'Build url available here: {build_url}\n'
+                text+=f'Build url available here: {build_url}\n  '
             if milestone != '':
-                text+=f'Milestone reached this week: {milestone}\n'
+                text+=f'Milestone reached this week: {milestone}\n  '
             if customer != '':
-                text+=f'Customers engagement: {customer}\n'
+                text+=f'Customers engagement: {customer}\n  '
             if ask!= '':
-                text+=f'Ask for the community: {ask}\n'
+                text+=f'Ask for the community: {ask}\n  '
 
             logging.log(logging.DEBUG, f"===NODE===\n {text}")
             logging.log(logging.DEBUG, f"===EXTRA_INFO===\n {extra_info}")
@@ -373,14 +403,7 @@ class CustomAirtableReader(BaseReader):
                 node.id_ = record_id
             node.metadata['extracted_timestamp']=time.time()
         return nodes
-    
-    def extract_skills(self) -> set:
-        all_skills = set()
-        for record in self.member_data:
-            fields = record.get("fields", {})
-            skills = fields.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS["skills"], [])
-            all_skills.update(skills)
-        return all_skills
+
 
     def get_image_url_from_member_record(self, record) -> str:
         fields = record.get("fields", {})
@@ -391,6 +414,36 @@ class CustomAirtableReader(BaseReader):
         image_url = image_url_large.get('url',"")
         logging.log(logging.DEBUG, f"Profile picture url: {image_url}")
         return image_url
+    
+    def find_member_from_build_updates(self, member_name) -> str:
+        table = self.api.table(self.base_id, self.member_table_id)
+        from pyairtable.formulas import match
+        formula = match({"Name": member_name})
+        member_record = table.first(formula=formula)
+        return member_record
+
+    @staticmethod
+    def find_member_by_name(member_name: str) -> List[dict]:
+        engine = create_engine(DB_CONNECTION, pool_pre_ping=True)
+        metadata = MetaData()
+        build_club_members_table = Table(
+            'build_club_members', 
+            metadata, 
+            autoload_with=engine
+        )
+
+        names = member_name.lower().split()
+        search_name='%'
+        for name in names:
+            search_name+=f'{name}%'
+        from sqlalchemy import func
+        stmt = select(build_club_members_table).where(func.lower(build_club_members_table.c.name).like(search_name))
+        print("==stmt==:", stmt, '==search name==', search_name)
+
+        with engine.connect() as connection:
+            cursor_results = connection.execute(stmt)
+            rows = cursor_results.fetchall()
+            return rows
     
     def extract_rows(self) -> List[dict]:
 
@@ -503,6 +556,14 @@ class CustomAirtableReader(BaseReader):
         df = pd.DataFrame(fields)
 
         return df
+        
+    def extract_skills(self) -> set:
+        all_skills = set()
+        for record in self.member_data:
+            fields = record.get("fields", {})
+            skills = fields.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS["skills"], [])
+            all_skills.update(skills)
+        return all_skills
     
     def refresh_table(self):
         engine = create_engine(DB_CONNECTION)

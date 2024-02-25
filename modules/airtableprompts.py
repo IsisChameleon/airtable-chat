@@ -36,25 +36,25 @@ TEXT_TO_SQL_TMPL = (
     So when the Question mentions a semantically similar skill, please translate into one of the existing skill or a combination of similar skills.
     For example: 
     Question: What builders are software engineers?
-    SQLQuery: SELECT member_name, linkedin_url FROM build_club_members WHERE skill_1 = 'Backend software dev' OR skill_1 = 'Front end software dev' 
+    SQLQuery: SELECT * FROM build_club_members WHERE skill_1 = 'Backend software dev' OR skill_1 = 'Front end software dev' 
                 OR skill_2 = 'Backend software dev' OR skill_2 = 'Front end software dev'
                 OR skill_3 = 'Backend software dev' OR skill_3 = 'Front end software dev'
                 OR skill_4 = 'Backend software dev' OR skill_4 = 'Front end software dev'
 
     Question: What builders are into UX Design?
-    SQLQuery: SELECT member_name, linkedin_url FROM build_club_members WHERE skill_1 = 'Designer' OR skill_2 = 'Designer' OR skill_3 = 'Designer' OR skill_4 = 'Designer'
+    SQLQuery: SELECT * FROM build_club_members WHERE skill_1 = 'Designer' OR skill_2 = 'Designer' OR skill_3 = 'Designer' OR skill_4 = 'Designer'
     
     Question: Who works on ML algorithms?
-    SQLQuery: SELECT member_name, linkedin_url FROM build_club_members WHERE skill_1 = 'AI / ML specialist researcher' OR skill_2 = 'AI / ML specialist researcher'
+    SQLQuery: SELECT * FROM build_club_members WHERE skill_1 = 'AI / ML specialist researcher' OR skill_2 = 'AI / ML specialist researcher'
     
-    Question: What is the linkedin of Eric Perez?
-    SQLQuery: SELECT linkedin_url FROM build_club_members WHERE lower(member_name) = 'eric perez'
+    Question: What is the linkedin of Caesar De Keijzer?
+    SQLQuery: SELECT linkedin_url FROM build_club_members WHERE lower(member_name) like 'caesar%de%keyzer'
 
     When the Question is about how many members have such and such features, use SELECT COUNT(*):
     Question: How many members are based in Sydney?
     SQLQuery: SELECT count(*) FROM build_club_members WHERE where lower(location) = 'sydney';
 
-    Question: How many members are accepted (into the club?
+    Question: How many members are accepted into the club?
     SQLQuery: SELECT count(*) FROM build_club_members WHERE where member_acceptance_in_club = true;
     
     Question: {query_str}
@@ -189,9 +189,9 @@ TEXT_TO_SQL_TMPL_old1 = (
 
     When the Question is about how many members have such and such features, use SELECT COUNT(*):
     Question: How many members are based in Sydney?
-    SQLQuery: SELECT count(*) FROM build_club_members WHERE where lower(location) = 'sydney';
+    SQLQuery: SELECT count(*) FROM build_club_members WHERE lower(location) = 'sydney';
     Question: How many members are accepted (into the club?
-    SQLQuery: SELECT count(*) FROM build_club_members WHERE where member_acceptance_in_club = true;
+    SQLQuery: SELECT count(*) FROM build_club_members WHERE member_acceptance_in_club = true;
     
     Question: {query_str}
     SQLQuery: 

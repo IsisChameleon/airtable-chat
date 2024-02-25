@@ -8,7 +8,7 @@ class ChatHistory:
         st.session_state["messages"] = self.history
 
     def default_prompt(self):
-        return f"ASk me (almost) anything about our Build Club members!"
+        return f"Ask me (almost) anything about our Build Club members!"
 
     def initialize_assistant_history(self):
         st.session_state.messages.append({"role": "assistant", "content": self.default_prompt()})

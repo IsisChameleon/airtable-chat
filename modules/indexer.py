@@ -210,24 +210,24 @@ class Indexer:
     
     @property
     def tools(self):
-        # print('GETTTING TOOLS ####################################')
-        if self._db_query_engine_tool is None:
-            self._db_query_engine_tool = QueryEngineTool(
+        self._semantic_query_engine_tool = QueryEngineTool(
+            query_engine=self.semantic_query_engine,
+            metadata=ToolMetadata(
+                    name="semantic_query_engine",
+                    description="""Semantic search: useful for when you want to answer queries about members projects, their startups,
+                      what they are building, their build updates, and what are their interests and passions. 
+                      This is also used when other tools don't return any useful information to answer the question.""",
+                ),
+        )
+        self._db_query_engine_tool = QueryEngineTool(
                 query_engine=self.db_query_engine,
                 metadata=ToolMetadata(
                     name="db_query_engine",
                     description="Retrieve information using SQL queries: useful for when you want to answer queries about members career or role, if they are accepted in the club, linked in url, name, skills.",
                 ),
         )
-        # if self._semantic_query_engine_tool is None:
-        self._semantic_query_engine_tool = QueryEngineTool(
-            query_engine=self.semantic_query_engine,
-            metadata=ToolMetadata(
-                    name="semantic_query_engine",
-                    description="""Semantic search: useful for when you want to answer queries about members present and past projects and startups, what they are building, and what are their interests and passions""",
-                ),
-        )
-        return [self._db_query_engine_tool, self._semantic_query_engine_tool]
+
+        return [self._semantic_query_engine_tool, self._db_query_engine_tool]
     
     @property
     def retriever_tools(self):

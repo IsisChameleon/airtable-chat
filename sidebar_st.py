@@ -1,4 +1,5 @@
 import streamlit as st
+import base64
 
 class Sidebar:
 
@@ -7,6 +8,22 @@ class Sidebar:
     TEMPERATURE_MAX_VALUE = 1.0
     TEMPERATURE_DEFAULT_VALUE = 0.0
     TEMPERATURE_STEP = 0.01
+
+    @staticmethod
+    def sidebar_bg(side_bg):
+
+        side_bg_ext = 'png'
+
+        st.markdown(
+            f"""
+            <style>
+            [data-testid="stSidebar"] > div:first-child {{
+                background: url(data:image/{side_bg_ext};base64,{base64.b64encode(open(side_bg, "rb").read()).decode()});
+            }}
+            </style>
+            """,
+            unsafe_allow_html=True,
+            )
 
     @staticmethod
     def about():

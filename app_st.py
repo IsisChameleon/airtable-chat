@@ -29,6 +29,7 @@ st.title("Chat about Build Club Members")
 
 # Instantiate the main components
 sidebar = Sidebar()
+sidebar.sidebar_bg('bolt2.png')
 
 def setupChatAgent():
 
