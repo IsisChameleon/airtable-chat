@@ -1,27 +1,18 @@
-from llama_index.core import ServiceContext, load_index_from_storage, StorageContext
+from llama_index.core import load_index_from_storage, StorageContext
 from llama_index.core.indices import VectorStoreIndex, ListIndex
 from llama_index.llms.openai import OpenAI
-
-from llama_index.legacy.vector_stores.faiss import FaissVectorStore
 from llama_index.vector_stores.supabase import SupabaseVectorStore
-from llama_index.core.readers.base import BaseReader
 from llama_index.core import SQLDatabase
-from llama_index.core.prompts.base import PromptTemplate
-from llama_index.core.prompts.prompt_type import PromptType
 from llama_index.core.query_engine import NLSQLTableQueryEngine
 from llama_index.core.retrievers import NLSQLRetriever
 from llama_index.core.tools import QueryEngineTool, ToolMetadata, RetrieverTool
 from llama_index.core.postprocessor.llm_rerank import LLMRerank
-from llama_index.core.postprocessor import SimilarityPostprocessor
 
 from modules.reader import CustomAirtableReader
 from modules.airtableprompts  import TEXT_TO_SQL_PROMPT
 
-from typing import Any, Dict, Optional, Type, List
 import os
-from pathlib import Path
 import logging
-# import faiss
 
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv(), override=True)
@@ -32,16 +23,7 @@ DB_CONNECTION=SUPABASE_CONNECTION_STRING
 
 #https://chartio.com/resources/tutorials/how-to-execute-raw-sql-in-sqlalchemy/
 from sqlalchemy import (
-    insert,
-    create_engine,
-    MetaData,
-    Table,
-    Column,
-    String,
-    Boolean,
-    Integer,
-    select,
-    column,
+    create_engine
 )
 
 STORAGE_ROOT='.' #local
@@ -81,18 +63,6 @@ class Indexer:
         self.vectorstoreindex.storage_context.persist(f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}')
         self._semantic_query_engine = None
         return self.vectorstoreindex
-
-    # def loadIndex(self, reload_from_disk=False):
-    #     if self.vectorstoreindex is None or reload_from_disk==True:
-        
-    #         persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'
-    #         # vector_store = FaissVectorStore.from_persist_dir(persist_dir)
-    #         storage_context = StorageContext.from_defaults(
-    #             persist_dir=persist_dir
-    #         )
-    #         self.vectorstoreindex = load_index_from_storage(storage_context=storage_context)
-    #         self._semantic_query_engine = None
-    #     return self.vectorstoreindex
     
     def _getVectorStoreIndex(self, reload=False):
         persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'

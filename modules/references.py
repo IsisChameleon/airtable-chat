@@ -42,7 +42,6 @@ build_update_table_id = AIRTABLE_CONFIG['BuildBountyBuildUpdates']['TABLE']
 
 import io
 import streamlit as st
-from streamlit_chat import message
 import re
 
 #TODO clean up this mess of extra code
