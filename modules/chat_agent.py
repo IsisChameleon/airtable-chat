@@ -12,7 +12,7 @@ from llama_index.core.selectors import LLMSingleSelector
 import logging
 import sys
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.WARN)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 load_dotenv(override=True)
 

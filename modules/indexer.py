@@ -31,7 +31,7 @@ STORAGE_ROOT='.' #local
 # https://docs.llamaindex.ai/en/latest/examples/vector_stores/FaissIndexDemo.html
 
 class Indexer:
-    def __init__(self, reader: CustomAirtableReader, index_name: str):
+    def __init__(self, reader: CustomAirtableReader, index_name: str | None):
 
         # sqlalchemy
         self.engine = None
@@ -193,31 +193,44 @@ class Indexer:
                 query_engine=self.db_query_engine,
                 metadata=ToolMetadata(
                     name="db_query_engine",
-                    description="Retrieve information using SQL queries: useful for when you want to answer queries about members career or role, if they are accepted in the club, linked in url, name, skills.",
+                    description="""Retrieve information about members using SQL queries:
+                        useful for when you want to answer queries about members skills (engineering, AI/ML researcher, domain expert, product owner), 
+                        if they are accepted in the club, their linked in url, location, their build squad, name, skills.
+                        Useful when Semantic search doesn't return anything useful.""",
                 ),
         )
-
-        return [self._semantic_query_engine_tool, self._db_query_engine_tool]
-    
-    @property
-    def retriever_tools(self):
-        if self._db_retriever_tool is None:
-            self._db_retriever_tool = RetrieverTool(
+        self._db_retriever_tool = RetrieverTool(
                 retriever=self.db_retriever,
                 metadata=ToolMetadata(
                     name="db_query_engine",
-                    description="useful for when you want to answer queries about members career, role, linked in url, name, skills, location, phone number, accepted in club or not, referrer name.",
-                ),
+                    description="""Retrieve information about members using SQL queries:
+                        useful for when you want to answer queries about members skills (engineering, AI/ML researcher, domain expert, product owner), 
+                        if they are accepted in the club, their linked in url, location, their build squad, name, skills.
+                        Useful when Semantic search doesn't return anything useful."""
+                )
         )
-        if self._semantic_retriever_tool is None:
-            self._semantic_retriever_tool = RetrieverTool(
-                retriever=self.semantic_retriever,
-                metadata=ToolMetadata(
-                        name="semantic_query_engine",
-                        description="useful for when you want to answer queries about members projects and startups (past and present), what they hope from the club and startups, or what they are building",
-                    ),
-        )
-        return [self._db_retriever_tool, self._semantic_retriever_tool]
+
+        return [self._semantic_query_engine_tool, self._db_retriever_tool]
+    
+    # @property
+    # def retriever_tools(self):
+    #     if self._db_retriever_tool is None:
+    #         self._db_retriever_tool = RetrieverTool(
+    #             retriever=self.db_retriever,
+    #             metadata=ToolMetadata(
+    #                 name="db_query_engine",
+    #                 description="useful for when you want to answer queries about members career, role, linked in url, name, skills, location, phone number, accepted in club or not, referrer name.",
+    #             ),
+    #     )
+    #     if self._semantic_retriever_tool is None:
+    #         self._semantic_retriever_tool = RetrieverTool(
+    #             retriever=self.semantic_retriever,
+    #             metadata=ToolMetadata(
+    #                     name="semantic_query_engine",
+    #                     description="useful for when you want to answer queries about members projects and startups (past and present), what they hope from the club and startups, or what they are building",
+    #                 ),
+    #     )
+    #     return [self._db_retriever_tool, self._semantic_retriever_tool]
 
     
 

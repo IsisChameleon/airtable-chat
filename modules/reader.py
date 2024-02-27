@@ -34,7 +34,7 @@ from sqlalchemy import (
     column,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
 
 Base = declarative_base()
 
@@ -415,12 +415,12 @@ class CustomAirtableReader(BaseReader):
         logging.log(logging.DEBUG, f"Profile picture url: {image_url}")
         return image_url
     
-    def find_member_from_build_updates(self, member_name) -> str:
-        table = self.api.table(self.base_id, self.member_table_id)
-        from pyairtable.formulas import match
-        formula = match({"Name": member_name})
-        member_record = table.first(formula=formula)
-        return member_record
+    # def find_member_from_build_updates(self, member_name) -> str:
+    #     table = self.api.table(self.base_id, self.member_table_id)
+    #     from pyairtable.formulas import match
+    #     formula = match({"Name": member_name})
+    #     member_record = table.first(formula=formula)
+    #     return member_record
 
     @staticmethod
     def find_member_by_name(member_name: str) -> List[dict]:
@@ -436,8 +436,8 @@ class CustomAirtableReader(BaseReader):
         search_name='%'
         for name in names:
             search_name+=f'{name}%'
-        from sqlalchemy import func
-        stmt = select(build_club_members_table).where(func.lower(build_club_members_table.c.name).like(search_name))
+
+        stmt = select(build_club_members_table.c.id, build_club_members_table.c.name, build_club_members_table.c.linkedin_url).where(func.lower(build_club_members_table.c.name).like(search_name))
         print("==stmt==:", stmt, '==search name==', search_name)
 
         with engine.connect() as connection:

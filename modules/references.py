@@ -29,7 +29,7 @@ from sqlalchemy import (
     column,
 )
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.WARN)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 from modules.reader import CustomAirtableReader
@@ -39,6 +39,7 @@ api = Api(AIRTABLE_CONFIG['BuildBountyMembersGenAI']['TOKEN'])
 base_id = AIRTABLE_CONFIG['BuildBountyMembersGenAI']['BASE']
 member_table_id = AIRTABLE_CONFIG['BuildBountyMembersGenAI']['TABLE']
 build_update_table_id = AIRTABLE_CONFIG['BuildBountyBuildUpdates']['TABLE']
+from modules.reader import  BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS
 
 import io
 import streamlit as st
@@ -109,29 +110,39 @@ def get_member_info(rec_id: str):
     return metadata, semantic_info, image_url
 
 @st.cache_data
+def find_by_name(member_name: str) -> dict:
+    member_rows = CustomAirtableReader.find_member_by_name(member_name)
+    if member_rows is not None and len(member_rows)>0:
+        member_row=member_rows[0]
+        member_id=member_row[0]
+        member_table = api.table(base_id, member_table_id)
+        print(f"Loading member info for rec_id:{member_row} {member_id}")
+    member_record=''
+    try:
+        member_record = member_table.get(member_id)
+    except:
+        pass
+    return member_record
+
+@st.cache_data
 def get_build_update_info(rec_id: str):
     build_update_table = api.table(base_id, build_update_table_id)
     print(f"Loading build update info for rec_id:{rec_id}")
     build_update_record = build_update_table.get(rec_id)
     reader = CustomAirtableReader()
     metadata, semantic_info = reader.extract_metadata_build_update(build_update_record)
-
-    member_rows = reader.find_member_by_name(metadata['member_name'])
-    if member_rows is not None and len(member_rows)>0:
-        member_row=member_rows[0]
-        member_id=member_row[0][0]
-        member_table = api.table(base_id, member_table_id)
-        print(f"Loading member info for rec_id:{member_id}")
-        member_record = member_table.get(member_id)
+    member_record = find_by_name(metadata['member_name'])
     image_url=''
-    if member_record:
+    if member_record != '':
         image_url = reader.get_image_url_from_member_record(member_record)
-    return metadata, semantic_info, image_url
+    return metadata, semantic_info, image_url, member_record
 
 def display_ref(nodes_with_score: List[NodeWithScore]):
 
     if nodes_with_score is None:
         return
+    
+    build_updates=[]
 
     for node in nodes_with_score:
         print(f'=====================metadata keys: {node.node.metadata.keys()}')
@@ -158,83 +169,107 @@ def display_ref(nodes_with_score: List[NodeWithScore]):
                     st.markdown(semantic_info.get('past_work', ''))
 
         if metadata.get('record_type')=='build_updates':
-            metadata, semantic_info, image_url = get_build_update_info(metadata['airtable_id'])
+            metadata_2, semantic_info, image_url, member_record = get_build_update_info(metadata['airtable_id'])
 
-            with st.container(border = True):
-                cols = st.columns([3, 1, 8])
-                with cols[0]:
-                    st.markdown(f"#### {metadata['member_name']}")
-                    if image_url != '':
-                        st.image(image_url, use_column_width='auto')
+            build_updates.append({
+                "name": member_record['fields']['Name'],
+                "metadata": metadata,
+                "image_url": image_url,
+                "semantic_info": semantic_info,
+                "member_record": member_record
+            })
 
-                with cols[2]:
-                    st.markdown(f"From build update **{metadata['build_update_date'][:10]}**")
-                    project_name = metadata['project_name']
-                    if project_name != '':
-                        st.markdown(f"For project {project_name}")
-                    st.write()
-                    st.markdown(semantic_info.get('build_this_week', ''))
-                    st.markdown(semantic_info.get('build_url',''))
-                    st.markdown(semantic_info.get('milestone', ''))
+    name=''
+    sorted_build_updates = sorted(build_updates, key=lambda x: (x["name"]))
+    for build_update in sorted_build_updates:
+        print(f'About to show {build_update["name"]}: {build_update}')
+        semantic_info = build_update['semantic_info']
+        metadata = build_update['metadata']
+        image_url = build_update['image_url']
 
-# def display_ref2(nodes_with_score: List[NodeWithScore]):
+        if build_update["name"]!=name:
+            print("New name")
+            name = build_update["name"]
+            current_container = st.container(border=True)
+            cols = current_container.columns([3, 1, 8])
+
+            fields=member_record.get('fields', {})
+            print('********* fields:' , fields)
+            skills=fields.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['skills'], [])
+            print('********* skills:' , skills)
+            linkedin_url = fields.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['linkedin_url'], '')
+            print('********* skills:' , linkedin_url)
+            cols[0].markdown(f"#### [{metadata['member_name']}]({linkedin_url})")
+            if image_url != '':
+                cols[0].image(image_url, use_column_width='auto')
+
+
+            cols[2].write(f"**{','.join(skills)}**")
+            cols[2].write()
+            cols[2].markdown(f"From build update **{metadata['build_update_date'][:10]}**")
+            project_name = metadata['project_name']
+            if project_name != '':
+                cols[2].markdown(f"For project {project_name}")
+            cols[2].write()
+            cols[2].markdown(semantic_info.get('build_this_week', ''))
+            cols[2].markdown(semantic_info.get('build_url',''))
+            cols[2].markdown(semantic_info.get('milestone', ''))
+
+        else:
+            print("Same name")
+            cols[2].write()
+            cols[2].markdown(f"From build update **{metadata['build_update_date'][:10]}**")
+            cols[2].write()
+            cols[2].markdown(semantic_info.get('build_this_week', ''))
+            cols[2].markdown(semantic_info.get('build_url',''))
+            cols[2].markdown(semantic_info.get('milestone', ''))
+
+# def display_ref_old(nodes_with_score: List[NodeWithScore]):
 
 #     if nodes_with_score is None:
 #         return
-#     # Prepare a list to hold each row's data
-#     data = []
 
-#     # Extracting data from each NodeWithScore object
 #     for node in nodes_with_score:
 #         print(f'=====================metadata keys: {node.node.metadata.keys()}')
-#         row_data = node.node.metadata.copy()  # Copy metadata dictionary
-#         if row_data is None or row_data == {}:
+#         # ['airtable_id', 'skills', 'member_name', 'linkedin_url', 'referrer_name', 'keen_for_ai_meetup', 'accepted', 'record_type', 'extracted_timestamp']
+#         metadata = node.node.metadata.copy()  # Copy metadata dictionary
+#         if metadata is None or metadata == {} or metadata.get('airtable_id', '')=='':
 #             next
 
-#         if row_data.get('record_type')=='build_club_members':
-#             member_table = api.table(base_id, member_table_id)
-#             print(f"row_data['airtable_id'] {row_data['airtable_id']}")
-#             member_record = member_table.get(row_data['airtable_id'])
-#             reader = CustomAirtableReader()
-#             metadata = reader.extract_metadata_member(member_record)
-
-#             st.subheader(metadata['member_name'])
-#             st.image(metadata['profile_picture_url'])
-#             st.markdown(node.node.text)
-
-
+#         if metadata.get('record_type')=='build_club_members':
+#             metadata, semantic_info, image_url = get_member_info(metadata['airtable_id'])
+#             linkedin_url = metadata.get('linkedin_url', '')
             
-#         # if row_data.get('record_type')=='build_updates':
-#         #     build_updates_table = api.table(base_id, build_update_table_id)
+#             with st.container(border = True):
+#                 cols = st.columns([3, 1, 8])
+#                 with cols[0]:
+#                     st.markdown(f"#### [{metadata['member_name']}]({linkedin_url})")
+#                     if image_url != '':
+#                         st.image(image_url, use_column_width='auto')
 
-#         # row_data['text'] = node.node.text     # Add text property to the dictionary
-#         # data.append(row_data)
+#                 with cols[2]:
+#                     st.write(f"**{','.join(metadata.get('skills', []))}**")
+#                     st.write()
+#                     st.markdown(semantic_info.get('build_project', ''))
+#                     st.markdown(semantic_info.get('past_work', ''))
 
+#         if metadata.get('record_type')=='build_updates':
+#             metadata, semantic_info, image_url = get_build_update_info(metadata['airtable_id'])
 
-#     # Create DataFrame
-#     df = pd.DataFrame(data)
+#             with st.container(border = True):
+#                 cols = st.columns([3, 1, 8])
+#                 with cols[0]:
+#                     st.markdown(f"#### {metadata['member_name']}")
+#                     if image_url != '':
+#                         st.image(image_url, use_column_width='auto')
 
-#     # Display the DataFrame without the 'text' column
-#     st.write(df.drop(columns=['text']))
+#                 with cols[2]:
+#                     st.markdown(f"From build update **{metadata['build_update_date'][:10]}**")
+#                     project_name = metadata['project_name']
+#                     if project_name != '':
+#                         st.markdown(f"For project {project_name}")
+#                     st.write()
+#                     st.markdown(semantic_info.get('build_this_week', ''))
+#                     st.markdown(semantic_info.get('build_url',''))
+#                     st.markdown(semantic_info.get('milestone', ''))
 
-#     # Iterate over each row to add buttons and display text if clicked
-#     for index, row in df.iterrows():
-#         # Generate a unique key for each button (important for correct functioning)
-#         button_key = f"button_{index}"
-
-#         # Add a button for each row
-#         if st.button('Show Text', key=button_key):
-#             # Display the text below the row if button is clicked
-#             # st.text("Text for Row {}: {}".format(index, row['text']))
-#             #         if st.button('Show Details', key=button_key):
-#             # Streamlit columns for layout
-#             col1, col2 = st.columns([1, 3])  # Adjust the ratio as needed
-
-#             name = row['name']
-
-#             with col1:
-#                 # Display the image in the left column
-#                 display_profile_picture(name)
-#             with col2:
-#                 # Display the text in the right column
-#                 st.write(row['text'])

@@ -4,9 +4,8 @@ from itertools import zip_longest
 import os
 import logging
 import sys
-import pandas as pd
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.WARN)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 import streamlit as st
@@ -31,31 +30,32 @@ st.title("Chat about Build Club Members")
 sidebar = Sidebar()
 sidebar.sidebar_bg('bolt2.png')
 
+@st.cache_resource(show_spinner='Initializing agent...')
 def setupChatAgent():
 
-    with st.status("Setting up chat agent...", expanded=True) as status:
-        config = AIRTABLE_CONFIG['BuildBountyMembersGenAI']
-        reader = CustomAirtableReader()
-        st.session_state['reader']=reader
+# with st.status("Setting up chat agent...", expanded=True) as status:
+    config = AIRTABLE_CONFIG['BuildBountyMembersGenAI']
+    reader = CustomAirtableReader()
+    st.session_state['reader']=reader
 
-        st.write("Setting up db query engine...")
-        index_name = INDEX_NAMES[config['TABLE']]
-        indexer = Indexer(reader, index_name)
+    # st.write("Setting up db query engine...")
+    index_name = INDEX_NAMES[config['TABLE']]
+    indexer = Indexer(reader, index_name)
 
-        _ = indexer.db_query_engine
+    _ = indexer.db_query_engine
 
-        st.write("Setting up semantic query engine...")
+    # st.write("Setting up semantic query engine...")
 
-        _ = indexer.semantic_query_engine
+    _ = indexer.semantic_query_engine
 
-        st.write("Organizing tools...")
-        tools = indexer.tools
-        if tools is None or len(tools)<1:
-            raise ValueError('No retrieval tool detected, please add a tool for the agent')
-        
-        st.write("Creating agent...")
-        agent=ChatAgentReact(tools)
-        status.update(label="Agent created.", expanded=False)
+    # st.write("Organizing tools...")
+    tools = indexer.tools
+    if tools is None or len(tools)<1:
+        raise ValueError('No retrieval tool detected, please add a tool for the agent')
+    
+    # st.write("Creating agent...")
+    agent=ChatAgentReact(tools)
+    # status.update(label="Agent created.", expanded=False)
     return agent
 
 def initConversation():
@@ -110,6 +110,14 @@ def st_exists(name: str):
 #     history.initialize()
 #     return setupChatAgent(), history
 
+def refresh_data_when_button_clicked():
+    refresh_data = st.session_state.get("refresh_data", False)
+    if  refresh_data:
+         with st.status("Refreshing data, it might take a minute or two...", expanded=True) as status:
+            reader = CustomAirtableReader()
+            indexer = Indexer(reader)
+            indexer._buildVectorStoreIndex_supabase()
+
 def main_processing():
     if not api_key_present():
         return
@@ -117,7 +125,6 @@ def main_processing():
     
     # Initialize the chatbot if first time or the chat history if button clicked
     reset_chat = st.session_state.get("reset_chat", True)
-    print(reset_chat)
     if  reset_chat or "chatbot" not in st.session_state or "history" not in st.session_state:
             
         chatbot, history = initConversation()
@@ -154,4 +161,5 @@ def main_processing():
 sidebar.show_contact()
 sidebar.show_options()
 main_processing()
+refresh_data_when_button_clicked()
 

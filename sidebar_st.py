@@ -29,7 +29,7 @@ class Sidebar:
     def about():
         about = st.sidebar.expander("Talk about Build Club members 🤖")
         sections = [
-            "#### Powered by [Llamaindex](), [OpenAI](https://platform.openai.com/docs/models/gpt-3-5) and [Streamlit](https://github.com/streamlit/streamlit) ⚡",
+            "#### Powered by [Llamaindex](https://www.llamaindex.ai/), [Supabase](https://supabase.com/),  [OpenAI](https://platform.openai.com) and [Streamlit](https://github.com/streamlit/streamlit) ⚡",
             "#### Source code: [isisChameleon/airtable-chatbot](https://github.com/IsisChameleon/airtable-chat)",
         ]
         for section in sections:
@@ -40,27 +40,16 @@ class Sidebar:
         if st.button("Reset chat"):
             st.session_state["reset_chat"] = True
         st.session_state.setdefault("reset_chat", False)
+
+    @staticmethod
+    def refresh_data_button():
+        if st.button("Refresh Data"):
+            st.session_state["refresh_data"] = True
+        st.session_state.setdefault("refresh_data", False)
         
     @staticmethod
     def on_model_parameters_change_callback():
         st.session_state["tweak"] = True
-
-    # def model_selector(self):
-    #     model = st.selectbox(label="Model", 
-    #                          options=self.MODEL_OPTIONS, 
-    #                          on_change=self.on_model_parameters_change_callback)
-    #     st.session_state["model"] = model
-
-    # def temperature_slider(self):
-    #     temperature = st.slider(
-    #         label="Temperature",
-    #         min_value=self.TEMPERATURE_MIN_VALUE,
-    #         max_value=self.TEMPERATURE_MAX_VALUE,
-    #         value=self.TEMPERATURE_DEFAULT_VALUE,
-    #         step=self.TEMPERATURE_STEP,
-    #         on_change=self.on_model_parameters_change_callback
-    #     )
-    #     st.session_state["temperature"] = temperature
         
     def show_options(self):
         if "tweak" not in st.session_state:
@@ -68,10 +57,7 @@ class Sidebar:
         with st.sidebar.expander("⚙️ Tweak Me", expanded=True):
 
             self.reset_chat_button()
-            # self.model_selector()
-            # # self.temperature_slider()
-            # st.session_state.setdefault("model", self.MODEL_OPTIONS[0])
-            # st.session_state.setdefault("temperature", self.TEMPERATURE_DEFAULT_VALUE)
+            self.refresh_data_button()
 
     #Contact
     @staticmethod
