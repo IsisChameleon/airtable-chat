@@ -175,7 +175,8 @@ class CustomAirtableReader(BaseReader):
         self._build_update_data = table.all()
         return self._build_update_data
     
-    def extract_metadata_member(self, record):
+    @staticmethod
+    def extract_metadata_member(record):
         field = record['fields']
 
         # METADATA
@@ -245,7 +246,7 @@ class CustomAirtableReader(BaseReader):
             # extra_info['accepted']=accepted
             # extra_info['record_type']='build_club_members'
 
-            extra_info, semantic_info = self.extract_metadata_member(self, record)
+            extra_info, semantic_info = self.extract_metadata_member(record)
 
             skills = extra_info['skills']
             linkedin_url=extra_info['linkedin_url']
@@ -302,7 +303,8 @@ class CustomAirtableReader(BaseReader):
 
         return documents
     
-    def extract_metadata_build_update(self, record):
+    @staticmethod
+    def extract_metadata_build_update(record):
         field = record['fields']
 
         # METADATA
@@ -366,9 +368,9 @@ class CustomAirtableReader(BaseReader):
             extra_info, semantic_info = self.extract_metadata_build_update(record)
             build_this_week = semantic_info["build_this_week"]
             build_url = semantic_info["build_url"]
-            ask = semantic_info["ask_for_community"]
+            ask = semantic_info["ask"]
             milestone = semantic_info["milestone"]
-            customer = semantic_info["how_close_to_first_paid_customer"]
+            customer = semantic_info["customer"]
 
             text = ''
             text+=f"Build Update for member {extra_info['member_name']}\n  "

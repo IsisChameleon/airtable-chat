@@ -31,7 +31,7 @@ STORAGE_ROOT='.' #local
 # https://docs.llamaindex.ai/en/latest/examples/vector_stores/FaissIndexDemo.html
 
 class Indexer:
-    def __init__(self, reader: CustomAirtableReader, index_name: str | None):
+    def __init__(self, reader: CustomAirtableReader, index_name: str | None = None):
 
         # sqlalchemy
         self.engine = None
@@ -199,18 +199,18 @@ class Indexer:
                         Useful when Semantic search doesn't return anything useful.""",
                 ),
         )
-        self._db_retriever_tool = RetrieverTool(
-                retriever=self.db_retriever,
-                metadata=ToolMetadata(
-                    name="db_query_engine",
-                    description="""Retrieve information about members using SQL queries:
-                        useful for when you want to answer queries about members skills (engineering, AI/ML researcher, domain expert, product owner), 
-                        if they are accepted in the club, their linked in url, location, their build squad, name, skills.
-                        Useful when Semantic search doesn't return anything useful."""
-                )
-        )
+        # self._db_retriever_tool = RetrieverTool(
+        #         retriever=self.db_retriever,
+        #         metadata=ToolMetadata(
+        #             name="db_query_engine",
+        #             description="""Retrieve information about members using SQL queries:
+        #                 useful for when you want to answer queries about members skills (engineering, AI/ML researcher, domain expert, product owner), 
+        #                 if they are accepted in the club, their linked in url, location, their build squad, name, skills.
+        #                 Useful when Semantic search doesn't return anything useful."""
+        #         )
+        # )
 
-        return [self._semantic_query_engine_tool, self._db_retriever_tool]
+        return [self._semantic_query_engine_tool, self._db_query_engine_tool]
     
     # @property
     # def retriever_tools(self):
