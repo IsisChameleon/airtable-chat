@@ -4,6 +4,7 @@ from itertools import zip_longest
 import os
 import logging
 import sys
+import pandas as pd
 
 logging.basicConfig(stream=sys.stdout, level=logging.WARN)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
@@ -39,8 +40,8 @@ def setupChatAgent():
     st.session_state['reader']=reader
 
     # st.write("Setting up db query engine...")
-    index_name = INDEX_NAMES[config['TABLE']]
-    indexer = Indexer(reader, index_name)
+    # index_name = INDEX_NAMES[config['TABLE']]
+    indexer = Indexer(reader)
 
     _ = indexer.db_query_engine
 

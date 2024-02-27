@@ -31,7 +31,7 @@ STORAGE_ROOT='.' #local
 # https://docs.llamaindex.ai/en/latest/examples/vector_stores/FaissIndexDemo.html
 
 class Indexer:
-    def __init__(self, reader: CustomAirtableReader, index_name: str | None = None):
+    def __init__(self, reader: CustomAirtableReader):
 
         # sqlalchemy
         self.engine = None
@@ -41,7 +41,7 @@ class Indexer:
         self.reader = reader
         self._vector_store_index = None
         self.vectorstoreindex = None
-        self.index_name = index_name
+        # self.index_name = index_name
         self._semantic_query_engine = None
         self._db_query_engine = None
 
@@ -55,26 +55,26 @@ class Indexer:
         self.listindex = None
         self.vector_store = None
 
-    def _buildVectorStoreIndex(self):
-        logging.log(logging.INFO, f'===BUILD VECTOR STORE INDEX=== storing in {STORAGE_ROOT}/storage_vector_store_{self.index_name}')
-        nodes = self.reader.extract_nodes()
-        self.vectorstoreindex = VectorStoreIndex(nodes=nodes) #, storage_context=storage_context)
+    # def _buildVectorStoreIndex(self):
+    #     logging.log(logging.INFO, f'===BUILD VECTOR STORE INDEX=== storing in {STORAGE_ROOT}/storage_vector_store_{self.index_name}')
+    #     nodes = self.reader.extract_nodes()
+    #     self.vectorstoreindex = VectorStoreIndex(nodes=nodes) #, storage_context=storage_context)
 
-        self.vectorstoreindex.storage_context.persist(f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}')
-        self._semantic_query_engine = None
-        return self.vectorstoreindex
+    #     self.vectorstoreindex.storage_context.persist(f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}')
+    #     self._semantic_query_engine = None
+    #     return self.vectorstoreindex
     
-    def _getVectorStoreIndex(self, reload=False):
-        persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'
-        if os.path.exists(persist_dir) and os.path.isdir(persist_dir) and reload==False:
-            logging.log(logging.INFO, f'===LOADING VECTOR STORE INDEX=== from storage in {STORAGE_ROOT}/storage_vector_store_{self.index_name}')
-            storage_context = StorageContext.from_defaults(
-                persist_dir=persist_dir
-            )
-            self.vectorstoreindex = load_index_from_storage(storage_context=storage_context)
-            self._semantic_query_engine = None
-            return self.vectorstoreindex
-        return self._buildVectorStoreIndex()
+    # def _getVectorStoreIndex(self, reload=False):
+    #     persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'
+    #     if os.path.exists(persist_dir) and os.path.isdir(persist_dir) and reload==False:
+    #         logging.log(logging.INFO, f'===LOADING VECTOR STORE INDEX=== from storage in {STORAGE_ROOT}/storage_vector_store_{self.index_name}')
+    #         storage_context = StorageContext.from_defaults(
+    #             persist_dir=persist_dir
+    #         )
+    #         self.vectorstoreindex = load_index_from_storage(storage_context=storage_context)
+    #         self._semantic_query_engine = None
+    #         return self.vectorstoreindex
+    #     return self._buildVectorStoreIndex()
     
     def _getVectorStoreIndex_supabase(self):
         self.vector_store = SupabaseVectorStore(
