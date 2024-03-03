@@ -117,7 +117,7 @@ def find_by_name(member_name: str) -> dict:
         member_id=member_row[0]
         member_table = api.table(base_id, member_table_id)
         print(f"Loading member info for rec_id:{member_row} {member_id}")
-    member_record=''
+    member_record={}
     try:
         member_record = member_table.get(member_id)
     except:
@@ -171,8 +171,12 @@ def display_ref(nodes_with_score: List[NodeWithScore]):
         if metadata.get('record_type')=='build_updates':
             metadata_2, semantic_info, image_url, member_record = get_build_update_info(metadata['airtable_id'])
 
+            print(f'member_record::{member_record}')
+            print(f'metadata_2::{metadata_2}')
+            name = metadata_2['member_name']
+
             build_updates.append({
-                "name": member_record['fields']['Name'],
+                "name": name,
                 "metadata": metadata,
                 "image_url": image_url,
                 "semantic_info": semantic_info,
@@ -203,8 +207,8 @@ def display_ref(nodes_with_score: List[NodeWithScore]):
             if image_url != '':
                 cols[0].image(image_url, use_column_width='auto')
 
-
-            cols[2].write(f"**{','.join(skills)}**")
+            if skills != []:
+                cols[2].write(f"**{','.join(skills)}**")
             cols[2].write()
             cols[2].markdown(f"From build update **{metadata['build_update_date'][:10]}**")
             project_name = metadata['project_name']
