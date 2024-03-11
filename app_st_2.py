@@ -30,7 +30,9 @@ st.title("Chat about Build Club Members")
 
 # Instantiate the main components
 sidebar = Sidebar()
+sidebar.sidebar_bg('bolt2.png')
 
+@st.cache_resource(show_spinner='Initializing agent...')
 def setupChatAgent():
 
     with st.status("Setting up chat agent...", expanded=True) as status:
@@ -39,8 +41,8 @@ def setupChatAgent():
         st.session_state['reader']=reader #XX
 
         st.write("Setting up db query engine...")
-        index_name = INDEX_NAMES[config['TABLE']]
-        indexer = Indexer(reader, index_name)
+        # index_name = INDEX_NAMES[config['TABLE']]
+        indexer = Indexer(reader)
 
         _ = indexer.db_query_engine
 

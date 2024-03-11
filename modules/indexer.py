@@ -7,6 +7,8 @@ from llama_index.core.query_engine import NLSQLTableQueryEngine
 from llama_index.core.retrievers import NLSQLRetriever
 from llama_index.core.tools import QueryEngineTool, ToolMetadata, RetrieverTool
 from llama_index.core.postprocessor.llm_rerank import LLMRerank
+from llama_index.embeddings.openai import OpenAIEmbedding
+from llama_index.core import Settings
 
 from modules.reader import CustomAirtableReader
 from modules.airtableprompts  import TEXT_TO_SQL_PROMPT
@@ -54,6 +56,8 @@ class Indexer:
         self._semantic_retriever = None
         self.listindex = None
         self.vector_store = None
+        # global
+        Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small", dimension=1536)
 
     # def _buildVectorStoreIndex(self):
     #     logging.log(logging.INFO, f'===BUILD VECTOR STORE INDEX=== storing in {STORAGE_ROOT}/storage_vector_store_{self.index_name}')
@@ -83,8 +87,9 @@ class Indexer:
         )
         # TO DO: query vector store to find out if there is anything we need to build 
         # if YES: build vector store index, if NO: return without building
-        logging.log(logging.INFO, f'===Get VectorStoreIndex from SUPABASE=== members_and_build_updates')
-        self.vectorstoreindex = VectorStoreIndex.from_vector_store(self.vector_store, use_async=True)
+        logging.log(logging.INFO, f'===Get VectorStoreIndex from SUPABASE=== members_and_build_updates using openai text-embedding-3-small dim 1536')
+        embed_model = OpenAIEmbedding(model="text-embedding-3-small", dimension=1536, api_key=os.environ['OPENAI_API_KEY'])
+        self.vectorstoreindex = VectorStoreIndex.from_vector_store(self.vector_store, use_async=True, embed_model=embed_model)
         return self.vectorstoreindex
 
     def _buildVectorStoreIndex_supabase(self):
@@ -94,7 +99,9 @@ class Indexer:
             postgres_connection_string=SUPABASE_CONNECTION_STRING, 
             collection_name='members_and_build_updates'
         )
-        self.vectorstoreindex = VectorStoreIndex.from_vector_store(self.vector_store, use_async=True)
+        embed_model = OpenAIEmbedding(model="text-embedding-3-small", dimension=1536, api_key=os.environ['OPENAI_API_KEY'])
+        logging.log(logging.INFO, f'===BUILD VECTOR STORE INDEX using openai text-embedding-3-small dim 1536')
+        self.vectorstoreindex = VectorStoreIndex.from_vector_store(self.vector_store, use_async=True, embed_model=embed_model)
         self.vectorstoreindex.insert_nodes(nodes)
         return self.vectorstoreindex
 
@@ -185,8 +192,8 @@ class Indexer:
             metadata=ToolMetadata(
                     name="semantic_query_engine",
                     description="""Semantic search: useful for when you want to answer queries about members projects, their startups,
-                      what they are building, their build updates, and what are their interests and passions. 
-                      This is also used when other tools don't return any useful information to answer the question.""",
+                      what they are building, their build updates, and what are their interests and passions, and in what domain their are working. 
+                      This is the default tool. Use it when other tools don't return any useful information to answer the question.""",
                 ),
         )
         self._db_query_engine_tool = QueryEngineTool(
@@ -194,9 +201,9 @@ class Indexer:
                 metadata=ToolMetadata(
                     name="db_query_engine",
                     description="""Retrieve information about members using SQL queries:
-                        useful for when you want to answer queries about members skills (engineering, AI/ML researcher, domain expert, product owner), 
-                        if they are accepted in the club, their linked in url, location, their build squad, name, skills.
-                        Useful when Semantic search doesn't return anything useful.""",
+                        useful for when you want to answer queries about members skills (engineering, AI/ML researcher, product owner), 
+                        if they are accepted in the club, their linked in url, location, their build squad, or name.
+                        ALso try it when Semantic search doesn't return anything.""",
                 ),
         )
         # self._db_retriever_tool = RetrieverTool(

@@ -46,27 +46,27 @@ def download_image(url: str):
     else:
         response.raise_for_status()
 
-BUILD_CLUB_BUILD_UPDATES_AIRTABLE_COLUMNS = {
-    "skills": "What are your areas of expertise you have (select max 4 please)",
-    "name": "Name",
-    "linkedin_url": "What's the link to your LinkedIn?",
-    "build_project": "What will you build",
-    "past_work": "Past work",
-    "are_you_building_in_squad": "Optional — building with a squad?",
-    "based_in_sydney": "Where are you based? (note only Sydney residents accepted)",
-    "expectation_from_joining_club": 'What do you want to get out of this program?',
-    "phone_number": "Phone number (to add to WhatsApp group",
-    "member_location": "Location",
-    "profile_picture_url": "Profile picture",
-    "member_acceptance_in_club": "Final decision",
-    "referee": "Referred by a builder? Tell us who so we can hit them up with some build points",
-    "referrer_name": "Refer name",
-    "assignee": "Assignee",
-    "status" :"Status",
-    "ai_builder_linkedin_badge": "Are you able and willing to add Aura AI Builder Fellow as a badge on your LinkedIn to recognise the program?",
-    "best_time_for_build_sessions": "Do you have a preference time/ day? Please select all you can do",
-    "keen_for_ai_meetup": "We would love to extend an invitation to an intimate AI meetup we are holding. If you are successful, we will also be doing a quick cohort induction prior"
-}
+# BUILD_CLUB_BUILD_UPDATES_AIRTABLE_COLUMNS = {
+#     "skills": "What are your areas of expertise you have (select max 4 please)",
+#     "name": "Name",
+#     "linkedin_url": "What's the link to your LinkedIn?",
+#     "build_project": "What will you build",
+#     "past_work": "Past work",
+#     "are_you_building_in_squad": "Optional — building with a squad?",
+#     "based_in_sydney": "Where are you based? (note only Sydney residents accepted)",
+#     "expectation_from_joining_club": 'What do you want to get out of this program?',
+#     "phone_number": "Phone number (to add to WhatsApp group",
+#     "member_location": "Location",
+#     "profile_picture_url": "Profile picture",
+#     "member_acceptance_in_club": "Final decision",
+#     "referee": "Referred by a builder? Tell us who so we can hit them up with some build points",
+#     "referrer_name": "Refer name",
+#     "assignee": "Assignee",
+#     "status" :"Status",
+#     "ai_builder_linkedin_badge": "Are you able and willing to add Aura AI Builder Fellow as a badge on your LinkedIn to recognise the program?",
+#     "best_time_for_build_sessions": "Do you have a preference time/ day? Please select all you can do",
+#     "keen_for_ai_meetup": "We would love to extend an invitation to an intimate AI meetup we are holding. If you are successful, we will also be doing a quick cohort induction prior"
+# }
 
 BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS = {
     "skills": "What are your areas of expertise you have (select max 4 please)",
@@ -107,18 +107,18 @@ BUILD_UPDATES_AIRTABLE_COLUMNS = {
     "how_close_to_first_paid_customer": 'How close am I to first paid customer?'
 }
 
-WITH_A_TEAM_TPL = """.My team is {are_you_building_in_squad}"""
+# WITH_A_TEAM_TPL = """.My team is {are_you_building_in_squad}"""
 
-NODE_TPL = """
-My name is {name}, and my linkedin profile is {linkedin_url}. 
-My skills include {skills}.
-I am currently building {build_project} {with_a_team}.
-In the past I worked on {past_work}.
-I'm hoping that joining the club will allow me to {expectation_from_joining_club}
-My location is {location}
-I'm available for building on {best_time_for_build_sessions}
+# NODE_TPL = """
+# My name is {name}, and my linkedin profile is {linkedin_url}. 
+# My skills include {skills}.
+# I am currently building {build_project} {with_a_team}.
+# In the past I worked on {past_work}.
+# I'm hoping that joining the club will allow me to {expectation_from_joining_club}
+# My location is {location}
+# I'm available for building on {best_time_for_build_sessions}
 
-"""
+# """
 
 #'Name (from Notes)'
 #'Full Name (from Referred by a builder? Tell us who so we can hit them up with some build points)'
@@ -226,26 +226,6 @@ class CustomAirtableReader(BaseReader):
             field = record['fields']
             logging.log(logging.DEBUG, f"===FIELD EXTRACTED FROM AIRTABLE===\n {field}")
 
-            # METADATA
-            # extra_info = {}
-            # extra_info['airtable_id'] = record['id']
-            # skills = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['skills'],[])
-            # extra_info['skills'] = skills
-            # extra_info['member_name'] = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['name'],'Unknown member name')
-            # linkedin_url = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['linkedin_url'],'')
-            # extra_info['linkedin_url']=linkedin_url
-            # referrer_name = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['referrer_name'],'')
-            # extra_info['referrer_name']=referrer_name
-            # extra_info['keen_for_ai_meetup']=field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['keen_for_ai_meetup'], False)
-            
-            # member_accepted_list = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['member_acceptance_in_club'],[])
-            # accepted=False
-            # if len(member_accepted_list)>0:
-            #     if 'Accept' in member_accepted_list:
-            #         accepted=True
-            # extra_info['accepted']=accepted
-            # extra_info['record_type']='build_club_members'
-
             extra_info, semantic_info = self.extract_metadata_member(record)
 
             skills = extra_info['skills']
@@ -256,18 +236,6 @@ class CustomAirtableReader(BaseReader):
             expectation_from_joining_club=semantic_info['expectation_from_joining_club']
             location=extra_info['location']
             best_time_for_build_sessions=semantic_info['best_time_for_build_sessions']
-
-
-            # Formatting the node text
-
-            # build_in_squad = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['are_you_building_in_squad'], '')
-            # location = 'Sydney' if field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['based_in_sydney'], 'No') == 'Yes' else field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['member_location'], '')
-            # name =  extra_info['member_name']
-            # linkedin_url = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['linkedin_url'],'')
-            # build_project = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['build_project'],'')
-            # past_work = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['past_work'],'')
-            # expectation_from_joining_club = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['expectation_from_joining_club'],'')
-            # best_time_for_build_sessions = field.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['best_time_for_build_sessions'], '')
 
             node_text = 'MEMBER DETAILS:\n\n'
             node_text+=f"Member name: {extra_info['member_name']}\n"
@@ -343,27 +311,6 @@ class CustomAirtableReader(BaseReader):
 
             field = record['fields']
             logging.log(logging.DEBUG, f"===FIELD EXTRACTED FROM AIRTABLE===\n {field}")
-
-            # # METADATA
-            # extra_info = {}
-            # extra_info['airtable_id'] = record['id']
-            # extra_info['member_name']=field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['member_name'], 'Unknown member name')
-            # project_name = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_project_name'], field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['project_name'], ''))
-            # extra_info['project_name']=project_name
-            # extra_info['slack_email']=field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['slack_email'], '')
-            # if field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_video_demo_available'], '') != '':
-            #     extra_info['build_video_demo_available']=True
-            # build_update_date = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS['build_update_date'], record.get('createdTime', ''))
-            # extra_info['build_update_date']=build_update_date
-            # extra_info['record_type']='build_updates'
-
-            # #TEXT FOR SEMANTIC SEARCH
-
-            # build_this_week = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["build_this_week"], '')
-            # build_url = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["build_url"], '')
-            # ask = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["ask_for_community"], '')
-            # milestone = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["milestone"], '')
-            # customer = field.get(BUILD_UPDATES_AIRTABLE_COLUMNS["how_close_to_first_paid_customer"], '')
 
             extra_info, semantic_info = self.extract_metadata_build_update(record)
             build_this_week = semantic_info["build_this_week"]
@@ -583,8 +530,11 @@ class CustomAirtableReader(BaseReader):
             with engine.begin() as connection:
                 cursor = connection.execute(stmt)
         logging.log(logging.INFO, f'===YAY=== All rows inserted in build_club_members table')
+
+        
 #=========================================================================================================
-# TODO IN PROGRESS
+# TODO MYBE CLEAN UP THIS?
+#===================================================================================================
 
 
 class AirTableDesigner():

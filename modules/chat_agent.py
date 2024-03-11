@@ -41,9 +41,9 @@ class ChatAgentReact:
         # self.memory = ChatMemoryBuffer.from_defaults(llm=llm, chat_history=[])
         context = """
         You are answering questions about the Build Club Members (most ambitious AI builders, tinkerers and founders in Australia and New Zealand) and their build updates
-        You will have access to 2 tools, in most cases, start with the semantic_query engine unless it match precisely the db_query_engine tool specifications.
-
+        You will have access to 2 tools, use the semantic_query_engine unless it match precisely the db_query_engine tool specifications.
         If the db_query_engine does not return any results, don't jump to conclusion, try the semantic_query_engine tool.
+        Finally, don't summarize the answers provided by the semantic_query_engine tool when formulating your answer.
         """
 
         self.agent = ReActAgent.from_tools(tools, llm=llm, context=context, verbose=True) # TODO: add system_prompt=system_prompt_llamaindex_ndis_invoicing_agent)
