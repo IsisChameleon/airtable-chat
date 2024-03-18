@@ -12,6 +12,7 @@ from llama_index.core import Settings
 
 from modules.reader import CustomAirtableReader
 from modules.airtableprompts  import TEXT_TO_SQL_PROMPT
+import modules.modelconfig as models
 
 import os
 import logging
@@ -22,6 +23,9 @@ load_dotenv(find_dotenv(), override=True)
 SUPABASE_CONNECTION_STRING=os.getenv('SUPABASE_CONNECTION_STRING')
 SQLITE_MEMORY_CONNECTION_STRING="sqlite:///:memory:"
 DB_CONNECTION=SUPABASE_CONNECTION_STRING
+LLM_RERANK_MODEL=models.LLM_RERANK_MODEL
+SEMANTIC_QUERY_ENGINE_MODEL=models.SEMANTIC_QUERY_ENGINE_MODEL
+SQL_QUERY_ENGINE_MODEL=models.SQL_QUERY_ENGINE_MODEL
 
 #https://chartio.com/resources/tutorials/how-to-execute-raw-sql-in-sqlalchemy/
 from sqlalchemy import (
@@ -111,12 +115,12 @@ class Indexer:
         if self.vectorstoreindex is None:
             _ = self._getVectorStoreIndex_supabase()
         # if self._semantic_query_engine is None:
-        llm = OpenAI(model="gpt-4", temperature=0)
-        print('NODE POSTPROCESSOR LLMRERANK')
+        llm = OpenAI(model=LLM_RERANK_MODEL, temperature=0)
+        llm_qe = OpenAI(model=SEMANTIC_QUERY_ENGINE_MODEL, temperature=0)
         # node_postprocessor_1 = SimilarityPostprocessor(similarity_cutoff=0.75)
         node_postprocessor_2 = LLMRerank(llm=llm)
         self._semantic_query_engine = self.vectorstoreindex.as_query_engine(
-            llm=llm, 
+            llm=llm_qe, 
             # retriever kwargs
             similarity_top_k=8, 
             # post processing
@@ -150,7 +154,7 @@ class Indexer:
 
         if self._db_query_engine is None:
 
-            llm = OpenAI(model="gpt-4", temperature=0)
+            llm = OpenAI(model=SQL_QUERY_ENGINE_MODEL, temperature=0)
             self._db_query_engine = NLSQLTableQueryEngine(
                 sql_database=self._sql_database,
                 llm=llm,

@@ -8,3 +8,7 @@ psycopg2-binary  #2.9.9
 sqlalchemy.orm #1.2.10
 vecs #0.4.2 pgvector client
 llama-index-vector-stores-supabase #0.1.2
+# llama-index-callbacks-langfuse #0.1.2
+# deepeval
+opentelemetry-exporter-otlp #1.23.0
+openinference-instrumentation-llama-index #1.2.0

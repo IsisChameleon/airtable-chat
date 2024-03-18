@@ -4,7 +4,7 @@ from llama_index.core.agent import ReActAgent
 from llama_index.llms.openai import OpenAI
 # from llama_index.memory import BaseMemory, ChatMemoryBuffer
 from llama_index.core.tools import QueryEngineTool, ToolMetadata, BaseTool
-from typing import Any, Dict, Optional, Type, List
+from typing import List
 from dotenv import load_dotenv
 from llama_index.core.query_engine import RouterQueryEngine
 from llama_index.core.selectors import LLMSingleSelector
@@ -16,11 +16,13 @@ logging.basicConfig(stream=sys.stdout, level=logging.WARN)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 load_dotenv(override=True)
 
+import modules.modelconfig as models
+AGENT_MODEL = models.AGENT_MODEL
 
 class ChatAgent:
     def __init__(self, tools:List[BaseTool]):
 
-        llm = OpenAI(model='gpt-4', temperature=0)
+        llm = OpenAI(model=AGENT_MODEL, temperature=0)
         # self.memory = ChatMemoryBuffer.from_defaults(llm=llm, chat_history=[])
 
         self.agent = OpenAIAgent.from_tools(tools, llm=llm, verbose=True) # TODO: add system_prompt=system_prompt_llamaindex_ndis_invoicing_agent)
@@ -37,7 +39,7 @@ class ChatAgent:
 class ChatAgentReact:
     def __init__(self, tools:List[BaseTool]):
 
-        llm = OpenAI(model='gpt-4', temperature=0)
+        llm = OpenAI(model=AGENT_MODEL, temperature=0)
         # self.memory = ChatMemoryBuffer.from_defaults(llm=llm, chat_history=[])
         context = """
         You are answering questions about the Build Club Members (most ambitious AI builders, tinkerers and founders in Australia and New Zealand) and their build updates

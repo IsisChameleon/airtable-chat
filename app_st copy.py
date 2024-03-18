@@ -19,10 +19,27 @@ from modules.references import display_references, display_ref
 from modules.reader import CustomAirtableReader
 from modules.indexer import Indexer
 from modules.airtableconfig import INDEX_NAMES, AIRTABLE_CONFIG
-from modules.arize import setupInstrumentation
 
-# Load environment variables
-setupInstrumentation()
+# setting up observability
+import phoenix as px
+from llama_index.core import global_handler, set_global_handler
+
+# set_global_handler("langfuse")
+# langfuse_callback_handler = global_handler
+
+# from llama_index.core import Settings
+# from llama_index.core.callbacks import CallbackManager
+# from langfuse.llama_index import LlamaIndexCallbackHandler
+
+# To view traces in Phoenix, you will first have to start a Phoenix server. You can do this by running the following:
+session = px.launch_app()
+
+
+# Once you have started a Phoenix server, you can start your LlamaIndex application and configure it to send traces to Phoenix. To do this, you will have to add configure Phoenix as the global handler
+
+set_global_handler("arize_phoenix")
+
+
 
 # Set streamlit page configuration
 st.set_page_config(layout="wide", page_title="Chat about Build Club Members")
@@ -61,8 +78,13 @@ def setupChatAgent():
     return agent
 
 def initConversation():
+    print(f'========Init conversation=============')
     history = ChatHistory()
     history.initialize()
+    # langfuse_callback_handler = LlamaIndexCallbackHandler()
+    # Settings.callback_manager = CallbackManager([langfuse_callback_handler])
+    # st.session_state['langfuse_handler']=langfuse_callback_handler
+    # print(f'========Setting up langfuse global handler============= {langfuse_callback_handler}')
     return setupChatAgent(), history
 
 def load_api_key():
@@ -163,5 +185,8 @@ def main_processing():
 sidebar.show_contact()
 sidebar.show_options()
 main_processing()
+# st.session_state['langfuse_handler'].flush()
 refresh_data_when_button_clicked()
+
+print(px.active_session().url)
 
