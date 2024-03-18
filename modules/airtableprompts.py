@@ -27,7 +27,6 @@ TEXT_TO_SQL_TMPL = (
     'AI Engineer',
     'Backend software dev',
     'Designer',
-    'Domain expert',
     'Front end software dev',
     'Go to market',
     'Idea validating',
