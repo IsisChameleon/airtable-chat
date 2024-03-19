@@ -119,6 +119,7 @@ def refresh_data_when_button_clicked():
             reader = CustomAirtableReader()
             indexer = Indexer(reader)
             indexer._buildVectorStoreIndex_supabase()
+            reader.refresh_table_manual_upsert()
 
 def main_processing():
     if not api_key_present():
