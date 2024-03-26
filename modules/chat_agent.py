@@ -78,24 +78,3 @@ class ChatAgentRouterQueryEngine:
         """
         response = self.agent.query(query)
         return response.response, response.source_nodes
-    
-# class ChatAgentCustomRouterQueryEngine:
-#     def __init__(self, tools:List[BaseTool]):
-
-#         llm = OpenAI(model='gpt-4', temperature=0)
-
-#         query_engine = RouterQueryEngine(
-#             selector=LLMSingleSelector.from_defaults(llm=llm),
-#             query_engine_tools=(tools),
-#         )
-
-#         self.agent = query_engine
-
-#         logging.log(logging.INFO, f'ChatAgentRouterQueryEngine initialized with gpt-4')
-
-#     def chat(self, query):
-#         """
-#         Start a conversational chat with a model via Langchain
-#         """
-#         response = self.agent.query(query)
-#         return response.response, response.source_nodes

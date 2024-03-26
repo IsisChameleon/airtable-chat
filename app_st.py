@@ -15,7 +15,7 @@ from streamlit_chat import message
 from sidebar_st import Sidebar
 from modules.chat_agent import ChatAgent, ChatAgentRouterQueryEngine, ChatAgentReact
 from modules.chathistory import ChatHistory
-from modules.references import display_references, display_ref
+from modules.references import display_ref
 from modules.reader import CustomAirtableReader
 from modules.indexer import Indexer
 from modules.airtableconfig import INDEX_NAMES, AIRTABLE_CONFIG

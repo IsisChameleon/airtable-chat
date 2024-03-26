@@ -1,11 +1,10 @@
-from llama_index.core import load_index_from_storage, StorageContext
-from llama_index.core.indices import VectorStoreIndex, ListIndex
+from llama_index.core.indices import VectorStoreIndex
 from llama_index.llms.openai import OpenAI
 from llama_index.vector_stores.supabase import SupabaseVectorStore
 from llama_index.core import SQLDatabase
 from llama_index.core.query_engine import NLSQLTableQueryEngine
 from llama_index.core.retrievers import NLSQLRetriever
-from llama_index.core.tools import QueryEngineTool, ToolMetadata, RetrieverTool
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
 from llama_index.core.postprocessor.llm_rerank import LLMRerank
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.core import Settings
@@ -58,27 +57,6 @@ class Indexer:
         self.vector_store = None
         # global
         Settings.embed_model = OpenAIEmbedding(model="text-embedding-3-small", dimension=1536)
-
-    # def _buildVectorStoreIndex(self):
-    #     logging.log(logging.INFO, f'===BUILD VECTOR STORE INDEX=== storing in {STORAGE_ROOT}/storage_vector_store_{self.index_name}')
-    #     nodes = self.reader.extract_nodes()
-    #     self.vectorstoreindex = VectorStoreIndex(nodes=nodes) #, storage_context=storage_context)
-
-    #     self.vectorstoreindex.storage_context.persist(f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}')
-    #     self._semantic_query_engine = None
-    #     return self.vectorstoreindex
-    
-    # def _getVectorStoreIndex(self, reload=False):
-    #     persist_dir=f'{STORAGE_ROOT}/storage_vector_store_{self.index_name}'
-    #     if os.path.exists(persist_dir) and os.path.isdir(persist_dir) and reload==False:
-    #         logging.log(logging.INFO, f'===LOADING VECTOR STORE INDEX=== from storage in {STORAGE_ROOT}/storage_vector_store_{self.index_name}')
-    #         storage_context = StorageContext.from_defaults(
-    #             persist_dir=persist_dir
-    #         )
-    #         self.vectorstoreindex = load_index_from_storage(storage_context=storage_context)
-    #         self._semantic_query_engine = None
-    #         return self.vectorstoreindex
-    #     return self._buildVectorStoreIndex()
     
     def _getVectorStoreIndex_supabase(self):
         self.vector_store = SupabaseVectorStore(
@@ -206,39 +184,8 @@ class Indexer:
                         ALso try it when Semantic search doesn't return anything.""",
                 ),
         )
-        # self._db_retriever_tool = RetrieverTool(
-        #         retriever=self.db_retriever,
-        #         metadata=ToolMetadata(
-        #             name="db_query_engine",
-        #             description="""Retrieve information about members using SQL queries:
-        #                 useful for when you want to answer queries about members skills (engineering, AI/ML researcher, domain expert, product owner), 
-        #                 if they are accepted in the club, their linked in url, location, their build squad, name, skills.
-        #                 Useful when Semantic search doesn't return anything useful."""
-        #         )
-        # )
 
         return [self._semantic_query_engine_tool, self._db_query_engine_tool]
-    
-    # @property
-    # def retriever_tools(self):
-    #     if self._db_retriever_tool is None:
-    #         self._db_retriever_tool = RetrieverTool(
-    #             retriever=self.db_retriever,
-    #             metadata=ToolMetadata(
-    #                 name="db_query_engine",
-    #                 description="useful for when you want to answer queries about members career, role, linked in url, name, skills, location, phone number, accepted in club or not, referrer name.",
-    #             ),
-    #     )
-    #     if self._semantic_retriever_tool is None:
-    #         self._semantic_retriever_tool = RetrieverTool(
-    #             retriever=self.semantic_retriever,
-    #             metadata=ToolMetadata(
-    #                     name="semantic_query_engine",
-    #                     description="useful for when you want to answer queries about members projects and startups (past and present), what they hope from the club and startups, or what they are building",
-    #                 ),
-    #     )
-    #     return [self._db_retriever_tool, self._semantic_retriever_tool]
-
     
 
 

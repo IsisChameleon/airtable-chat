@@ -3,7 +3,7 @@ from typing import List
 
 from llama_index.core.readers.base import BaseReader
 from llama_index.core.schema import Document, BaseNode, TextNode
-from pyairtable import Table, Api, Base
+from pyairtable import Table, Api
 import pandas as pd
 import json
 import uuid
@@ -25,13 +25,7 @@ from sqlalchemy import (
     create_engine,
     MetaData,
     Table,
-    Column,
-    String,
-    Boolean,
-    LargeBinary,
-    Integer,
     select,
-    column,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import func
@@ -45,28 +39,6 @@ def download_image(url: str):
         return response.content
     else:
         response.raise_for_status()
-
-# BUILD_CLUB_BUILD_UPDATES_AIRTABLE_COLUMNS = {
-#     "skills": "What are your areas of expertise you have (select max 4 please)",
-#     "name": "Name",
-#     "linkedin_url": "What's the link to your LinkedIn?",
-#     "build_project": "What will you build",
-#     "past_work": "Past work",
-#     "are_you_building_in_squad": "Optional — building with a squad?",
-#     "based_in_sydney": "Where are you based? (note only Sydney residents accepted)",
-#     "expectation_from_joining_club": 'What do you want to get out of this program?',
-#     "phone_number": "Phone number (to add to WhatsApp group",
-#     "member_location": "Location",
-#     "profile_picture_url": "Profile picture",
-#     "member_acceptance_in_club": "Final decision",
-#     "referee": "Referred by a builder? Tell us who so we can hit them up with some build points",
-#     "referrer_name": "Refer name",
-#     "assignee": "Assignee",
-#     "status" :"Status",
-#     "ai_builder_linkedin_badge": "Are you able and willing to add Aura AI Builder Fellow as a badge on your LinkedIn to recognise the program?",
-#     "best_time_for_build_sessions": "Do you have a preference time/ day? Please select all you can do",
-#     "keen_for_ai_meetup": "We would love to extend an invitation to an intimate AI meetup we are holding. If you are successful, we will also be doing a quick cohort induction prior"
-# }
 
 BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS = {
     "skills": "What are your areas of expertise you have (select max 4 please)",
@@ -106,23 +78,6 @@ BUILD_UPDATES_AIRTABLE_COLUMNS = {
     'build_video_demo_available': 'Video attachment of build update',
     "how_close_to_first_paid_customer": 'How close am I to first paid customer?'
 }
-
-# WITH_A_TEAM_TPL = """.My team is {are_you_building_in_squad}"""
-
-# NODE_TPL = """
-# My name is {name}, and my linkedin profile is {linkedin_url}. 
-# My skills include {skills}.
-# I am currently building {build_project} {with_a_team}.
-# In the past I worked on {past_work}.
-# I'm hoping that joining the club will allow me to {expectation_from_joining_club}
-# My location is {location}
-# I'm available for building on {best_time_for_build_sessions}
-
-# """
-
-#'Name (from Notes)'
-#'Full Name (from Referred by a builder? Tell us who so we can hit them up with some build points)'
-
 
 class CustomAirtableReader(BaseReader):
     """Airtable reader. Reads data from a table in a base.
@@ -363,13 +318,6 @@ class CustomAirtableReader(BaseReader):
         image_url = image_url_large.get('url',"")
         logging.log(logging.DEBUG, f"Profile picture url: {image_url}")
         return image_url
-    
-    # def find_member_from_build_updates(self, member_name) -> str:
-    #     table = self.api.table(self.base_id, self.member_table_id)
-    #     from pyairtable.formulas import match
-    #     formula = match({"Name": member_name})
-    #     member_record = table.first(formula=formula)
-    #     return member_record
 
     @staticmethod
     def find_member_by_name(member_name: str) -> List[dict]:
@@ -530,50 +478,3 @@ class CustomAirtableReader(BaseReader):
             with engine.begin() as connection:
                 cursor = connection.execute(stmt)
         logging.log(logging.INFO, f'===YAY=== All rows inserted in build_club_members table')
-
-        
-#=========================================================================================================
-# TODO MYBE CLEAN UP THIS?
-#===================================================================================================
-
-
-class AirTableDesigner():
-
-    def _design_build_club_members_table(self, default_schema) -> Table:
-        logging.log(logging.INFO, f'Design build_club_members table')
-        metadata_obj = default_schema
-        build_club_members = Table(
-            "build_club_members",
-            metadata_obj,
-            Column("id", String(256), primary_key=True),
-            Column("name", String(256)),
-            Column("linkedin_url", String(512)),
-            Column("skill_1", String(128)),
-            Column("skill_2", String(128)),
-            Column("skill_3", String(128)),
-            Column("skill_4", String(128)),
-            Column("based_in_sydney", String(256)),
-            Column("member_location", String(256)),
-            Column("member_acceptance_in_club", Boolean()),
-            Column("ai_builder_linkedin_badge", String(256)),
-            Column("referee", String(256)),
-            Column("referrer_name", String(256)),
-            Column("assignee", String(256)),
-            Column("status", String(256)),
-            Column("phone_number", String(256)),
-            Column("are_you_building_in_squad", String(1024)),
-            Column("best_time_for_build_sessions", String(1024)),
-            Column("keen_for_ai_meetup", String(128)),
-            Column("expectation_from_joining_club", String(4096)),
-            Column("build_project", String(4096)),
-            Column("past_work", String(4096)),
-            Column("profile_picture", LargeBinary())
-        )
-        # metadata_obj.create_all(self.engine)
-        return build_club_members
-    
-    def createTableBuildClubMemberIfNotExists(self):
-        self.engine = create_engine(DB_CONNECTION)
-        self.default_schema = MetaData()
-        self._table = self._design_build_club_members_table(self.default_schema, "build_club_members")
-        self.default_schema.create_all(self.engine)

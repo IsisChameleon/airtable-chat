@@ -1,5 +1,5 @@
 import streamlit as st
-from modules.references import display_references, display_ref
+from modules.references import display_ref
 
 class ChatHistory:
     

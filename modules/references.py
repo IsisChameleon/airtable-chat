@@ -1,6 +1,5 @@
 # Import required libraries
 from dotenv import load_dotenv, find_dotenv
-from itertools import zip_longest
 from typing import List
 import os
 import logging
@@ -17,16 +16,7 @@ DB_CONNECTION=SUPABASE_CONNECTION_STRING
 
 #https://chartio.com/resources/tutorials/how-to-execute-raw-sql-in-sqlalchemy/
 from sqlalchemy import (
-    insert,
     create_engine,
-    MetaData,
-    Table,
-    Column,
-    String,
-    Boolean,
-    Integer,
-    select,
-    column,
 )
 
 logging.basicConfig(stream=sys.stdout, level=logging.WARN)
@@ -44,33 +34,6 @@ from modules.reader import  BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS
 import io
 import streamlit as st
 import re
-
-#TODO clean up this mess of extra code
-
-def display_references(references):
-    if references is not None and len(references)>1:
-        source_placeholder=st.empty()
-        source_placeholder.markdown(references)
-
-# def format_newlines_for_markdown(s):
-#     # Step 1: Replace "\n\n" with a temporary placeholder
-#     s = re.sub(r'\n\n', 'TEMP_NEWLINE_PLACEHOLDER', s)
-
-#     # Step 2: Replace "\n" with "\n  "
-#     s = re.sub(r'\n', '\n  ', s)
-
-#     # Step 3: Replace the temporary placeholder with "\n\n  "
-#     s = re.sub('TEMP_NEWLINE_PLACEHOLDER', '\n\n  ', s)
-
-#     print("Improved text:",  s)
-
-#     return s
-
-# # Example usage
-# original_string = "This is a test string.\nIt contains newlines.\n\nAnd double newlines."
-# formatted_string = format_newlines_for_markdown(original_string)
-# print(formatted_string)
-
 
 def get_profile_picture(name):
     engine = create_engine(DB_CONNECTION, pool_pre_ping=True)
@@ -145,8 +108,6 @@ def display_ref(nodes_with_score: List[NodeWithScore]):
     build_updates=[]
 
     for node in nodes_with_score:
-        print(f'=====================metadata keys: {node.node.metadata.keys()}')
-        # ['airtable_id', 'skills', 'member_name', 'linkedin_url', 'referrer_name', 'keen_for_ai_meetup', 'accepted', 'record_type', 'extracted_timestamp']
         metadata = node.node.metadata.copy()  # Copy metadata dictionary
         if metadata is None or metadata == {} or metadata.get('airtable_id', '')=='':
             next
@@ -171,8 +132,6 @@ def display_ref(nodes_with_score: List[NodeWithScore]):
         if metadata.get('record_type')=='build_updates':
             metadata_2, semantic_info, image_url, member_record = get_build_update_info(metadata['airtable_id'])
 
-            print(f'member_record::{member_record}')
-            print(f'metadata_2::{metadata_2}')
             name = metadata_2['member_name']
 
             build_updates.append({
@@ -186,23 +145,18 @@ def display_ref(nodes_with_score: List[NodeWithScore]):
     name=''
     sorted_build_updates = sorted(build_updates, key=lambda x: (x["name"]))
     for build_update in sorted_build_updates:
-        print(f'About to show {build_update["name"]}: {build_update}')
         semantic_info = build_update['semantic_info']
         metadata = build_update['metadata']
         image_url = build_update['image_url']
 
         if build_update["name"]!=name:
-            print("New name")
             name = build_update["name"]
             current_container = st.container(border=True)
             cols = current_container.columns([3, 1, 8])
 
             fields=member_record.get('fields', {})
-            print('********* fields:' , fields)
             skills=fields.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['skills'], [])
-            print('********* skills:' , skills)
             linkedin_url = fields.get(BUILD_CLUB_MEMBERS_AIRTABLE_COLUMNS['linkedin_url'], '')
-            print('********* skills:' , linkedin_url)
             cols[0].markdown(f"#### [{metadata['member_name']}]({linkedin_url})")
             if image_url != '':
                 cols[0].image(image_url, use_column_width='auto')
@@ -220,60 +174,9 @@ def display_ref(nodes_with_score: List[NodeWithScore]):
             cols[2].markdown(semantic_info.get('milestone', ''))
 
         else:
-            print("Same name")
             cols[2].write()
             cols[2].markdown(f"From build update **{metadata['build_update_date'][:10]}**")
             cols[2].write()
             cols[2].markdown(semantic_info.get('build_this_week', ''))
             cols[2].markdown(semantic_info.get('build_url',''))
             cols[2].markdown(semantic_info.get('milestone', ''))
-
-# def display_ref_old(nodes_with_score: List[NodeWithScore]):
-
-#     if nodes_with_score is None:
-#         return
-
-#     for node in nodes_with_score:
-#         print(f'=====================metadata keys: {node.node.metadata.keys()}')
-#         # ['airtable_id', 'skills', 'member_name', 'linkedin_url', 'referrer_name', 'keen_for_ai_meetup', 'accepted', 'record_type', 'extracted_timestamp']
-#         metadata = node.node.metadata.copy()  # Copy metadata dictionary
-#         if metadata is None or metadata == {} or metadata.get('airtable_id', '')=='':
-#             next
-
-#         if metadata.get('record_type')=='build_club_members':
-#             metadata, semantic_info, image_url = get_member_info(metadata['airtable_id'])
-#             linkedin_url = metadata.get('linkedin_url', '')
-            
-#             with st.container(border = True):
-#                 cols = st.columns([3, 1, 8])
-#                 with cols[0]:
-#                     st.markdown(f"#### [{metadata['member_name']}]({linkedin_url})")
-#                     if image_url != '':
-#                         st.image(image_url, use_column_width='auto')
-
-#                 with cols[2]:
-#                     st.write(f"**{','.join(metadata.get('skills', []))}**")
-#                     st.write()
-#                     st.markdown(semantic_info.get('build_project', ''))
-#                     st.markdown(semantic_info.get('past_work', ''))
-
-#         if metadata.get('record_type')=='build_updates':
-#             metadata, semantic_info, image_url = get_build_update_info(metadata['airtable_id'])
-
-#             with st.container(border = True):
-#                 cols = st.columns([3, 1, 8])
-#                 with cols[0]:
-#                     st.markdown(f"#### {metadata['member_name']}")
-#                     if image_url != '':
-#                         st.image(image_url, use_column_width='auto')
-
-#                 with cols[2]:
-#                     st.markdown(f"From build update **{metadata['build_update_date'][:10]}**")
-#                     project_name = metadata['project_name']
-#                     if project_name != '':
-#                         st.markdown(f"For project {project_name}")
-#                     st.write()
-#                     st.markdown(semantic_info.get('build_this_week', ''))
-#                     st.markdown(semantic_info.get('build_url',''))
-#                     st.markdown(semantic_info.get('milestone', ''))
-
