@@ -15,9 +15,9 @@ Follow these instructions to set up the Airtable Chat application.
 
 ### Prerequisites
 
-- Python installed on your system. (Or use
+- Python installed on your system.
 - Git installed on your system.
-- (ALternatively Use a dev container, check [Setup dev environment with DevContainers](https://isabelle.hashnode.dev/setup-a-development-environment-to-experiment-with-langchain) for instructions)
+- (Alternatively use a dev container, check [Setup dev environment with DevContainers](https://isabelle.hashnode.dev/setup-a-development-environment-to-experiment-with-langchain) for instructions)
 - Access to [Supabase](https://supabase.com/) for database services. Create a project. (Refer to [Chatbot With LlamInde](https://isabelle.hashnode.dev/streamlit-chatbot-with-llamaindex-i))
 
 ## Setup Instructions
